@@ -14,6 +14,11 @@
 		AB3150FC2D81ED5100E08445 /* VisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3150FB2D81ED5100E08445 /* VisionTests.swift */; };
 		AB3151062D81ED5100E08445 /* VisionUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3151052D81ED5100E08445 /* VisionUITests.swift */; };
 		AB3151082D81ED5100E08445 /* VisionUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3151072D81ED5100E08445 /* VisionUITestsLaunchTests.swift */; };
+		AB3151172D81EDF400E08445 /* FrameHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3151162D81EDF400E08445 /* FrameHandler.swift */; };
+		AB3151192D81EE1F00E08445 /* FrameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3151182D81EE1F00E08445 /* FrameView.swift */; };
+		AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511A2D81EEF000E08445 /* VisionService.swift */; };
+		AB31511D2D81EF2000E08445 /* VisionBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511C2D81EF2000E08445 /* VisionBackend.swift */; };
+		AB31511F2D81EF4E00E08445 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511E2D81EF4E00E08445 /* OpenAIService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +49,11 @@
 		AB3151012D81ED5100E08445 /* VisionUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VisionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB3151052D81ED5100E08445 /* VisionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionUITests.swift; sourceTree = "<group>"; };
 		AB3151072D81ED5100E08445 /* VisionUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		AB3151162D81EDF400E08445 /* FrameHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameHandler.swift; sourceTree = "<group>"; };
+		AB3151182D81EE1F00E08445 /* FrameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameView.swift; sourceTree = "<group>"; };
+		AB31511A2D81EEF000E08445 /* VisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionService.swift; sourceTree = "<group>"; };
+		AB31511C2D81EF2000E08445 /* VisionBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionBackend.swift; sourceTree = "<group>"; };
+		AB31511E2D81EF4E00E08445 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +108,11 @@
 				AB3150EC2D81ED4E00E08445 /* ContentView.swift */,
 				AB3150EE2D81ED5000E08445 /* Assets.xcassets */,
 				AB3150F02D81ED5000E08445 /* Preview Content */,
+				AB3151162D81EDF400E08445 /* FrameHandler.swift */,
+				AB3151182D81EE1F00E08445 /* FrameView.swift */,
+				AB31511A2D81EEF000E08445 /* VisionService.swift */,
+				AB31511C2D81EF2000E08445 /* VisionBackend.swift */,
+				AB31511E2D81EF4E00E08445 /* OpenAIService.swift */,
 			);
 			path = Vision;
 			sourceTree = "<group>";
@@ -257,8 +272,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB31511F2D81EF4E00E08445 /* OpenAIService.swift in Sources */,
+				AB3151192D81EE1F00E08445 /* FrameView.swift in Sources */,
 				AB3150ED2D81ED4E00E08445 /* ContentView.swift in Sources */,
+				AB31511D2D81EF2000E08445 /* VisionBackend.swift in Sources */,
+				AB3151172D81EDF400E08445 /* FrameHandler.swift in Sources */,
 				AB3150EB2D81ED4E00E08445 /* VisionApp.swift in Sources */,
+				AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,6 +445,8 @@
 				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone usage for speech";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -454,6 +476,8 @@
 				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone usage for speech";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

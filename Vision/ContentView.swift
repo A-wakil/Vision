@@ -78,7 +78,16 @@ struct ContentView: View {
                     Button(action: {
                         if isAudioPlaying {
                             // Stop audio if playing
-                            stopAudioEngine()
+                            if audioEngine != nil {
+                                // Stop streaming audio
+                                stopAudioEngine()
+                            } else if let player = audioPlayer {
+                                // Stop replay audio
+                                player.stop()
+                                audioPlayer = nil
+                                isAudioPlaying = false
+                                isSpeaking = false
+                            }
                             print("Audio manually stopped by user")
                         } else if let audioData = completeAudioData {
                             // Replay the complete audio
@@ -372,6 +381,23 @@ struct ContentView: View {
                     // Create WAV data
                     completeAudioData = try? createWaveFile(pcmData: pcmData)
                     print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Saved complete audio for replay (\(completeAudioData?.count ?? 0) bytes)")
+                    
+                    // Schedule a final silent buffer to detect when all audio has finished playing
+                    if let playerNode = audioPlayerNode {
+                        // Create a tiny silent buffer (1 frame)
+                        let silentBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1)
+                        silentBuffer?.frameLength = 1
+                        
+                        // Schedule it to play after all other buffers with a completion handler
+                        playerNode.scheduleBuffer(silentBuffer!) {
+                            // This will be called when all audio has finished playing
+                            DispatchQueue.main.async {
+                                self.isSpeaking = false
+                                self.isAudioPlaying = false
+                                print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] All audio playback completed")
+                            }
+                        }
+                    }
                 }
             }
             isProcessingFrame = false

@@ -16,7 +16,12 @@ class VisionBackend {
     }
     
     func textToSpeech(_ text: String, voice: String = "nova") async throws -> Data {
-        return try await openAIService.textToSpeech(text, voice: voice)
+        return try await openAIService.textToSpeech(
+            text: text,
+            model: "gpt-4o-mini-tts",
+            voice: voice,
+            responseFormat: "pcm"
+        )
     }
 }
 

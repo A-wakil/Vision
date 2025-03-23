@@ -7,6 +7,7 @@
 
 import Foundation
 
+
 struct OpenAIConfig {
     static let apiKey = ""
     static let baseURL = "https://api.openai.com/v1"
@@ -15,7 +16,6 @@ struct OpenAIConfig {
 enum OpenAIEndpoint {
     case vision
     case speech
-    
     var path: String {
         switch self {
         case .vision:
@@ -83,6 +83,16 @@ struct SpeechRequest: Encodable {
     let model: String
     let input: String
     let voice: String
+    let responseFormat: String
+    let instructions: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case model
+        case input
+        case voice
+        case responseFormat = "response_format"
+        case instructions
+    }
 }
 
 // Add this new response type for speech
@@ -160,14 +170,21 @@ class OpenAIService {
         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No valid response content"])
     }
     
-    func textToSpeech(_ text: String, voice: String = "nova") async throws -> Data {
+    func textToSpeech(
+        text: String,
+        model: String = "gpt-4o-mini-tts",
+        voice: String = "nova",
+        responseFormat: String = "pcm",
+        instructions: String? = nil
+    ) async throws -> Data {
         let request = SpeechRequest(
-            model: "tts-1",
+            model: model,
             input: text,
-            voice: voice
+            voice: voice,
+            responseFormat: responseFormat,
+            instructions: instructions
         )
         
-        // Use a special case for speech endpoint that returns raw data
         return try await performRequestForAudio(.speech, body: request)
     }
     

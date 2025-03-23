@@ -84,13 +84,21 @@ struct ContentView: View {
                                         let description = try await openAIService.describeImage(imageData, language: currentLanguage)
                                         print("Got description, attempting TTS...")
                                         
-                                        // Convert description to speech
-                                        let audioData = try await openAIService.textToSpeech(description)
-                                        print("Received audio data size: \(audioData.count) bytes")
+                                        // Convert description to speech using the new model
+                                        let pcmData = try await openAIService.textToSpeech(
+                                            text: description,
+                                            model: "gpt-4o-mini-tts",
+                                            voice: "nova",
+                                            responseFormat: "pcm"
+                                        )
+                                        
+                                        // Convert PCM to WAV format
+                                        let wavData = try createWaveFile(pcmData: pcmData)
+                                        print("Converted PCM to WAV format")
                                         
                                         // Play the audio
                                         do {
-                                            audioPlayer = try AVAudioPlayer(data: audioData)
+                                            audioPlayer = try AVAudioPlayer(data: wavData)
                                             print("Created audio player")
                                             
                                             // Setup audio session
@@ -106,6 +114,7 @@ struct ContentView: View {
                                             }
                                         } catch {
                                             print("Audio setup error: \(error)")
+                                            throw error
                                         }
                                     }
                                 }
@@ -255,6 +264,48 @@ struct AnimatedSpeakerView: View {
                 }
             }
         }
+    }
+}
+
+// Add this helper function to convert PCM to WAV
+private func createWaveFile(pcmData: Data) throws -> Data {
+    let wavHeader = createWavHeader(pcmDataSize: UInt32(pcmData.count))
+    var wavData = Data()
+    wavData.append(wavHeader)
+    wavData.append(pcmData)
+    return wavData
+}
+
+private func createWavHeader(pcmDataSize: UInt32) -> Data {
+    var header = Data()
+    
+    // RIFF chunk descriptor
+    header.append("RIFF".data(using: .utf8)!)
+    header.append(UInt32(pcmDataSize + 36).littleEndian.data)
+    header.append("WAVE".data(using: .utf8)!)
+    
+    // "fmt " sub-chunk
+    header.append("fmt ".data(using: .utf8)!)
+    header.append(UInt32(16).littleEndian.data)  // Subchunk1Size (16 for PCM)
+    header.append(UInt16(1).littleEndian.data)   // AudioFormat (1 for PCM)
+    header.append(UInt16(1).littleEndian.data)   // NumChannels (1 for mono)
+    header.append(UInt32(24000).littleEndian.data) // SampleRate (24kHz)
+    header.append(UInt32(48000).littleEndian.data) // ByteRate (SampleRate * NumChannels * BitsPerSample/8)
+    header.append(UInt16(2).littleEndian.data)   // BlockAlign (NumChannels * BitsPerSample/8)
+    header.append(UInt16(16).littleEndian.data)  // BitsPerSample (16 bits)
+    
+    // "data" sub-chunk
+    header.append("data".data(using: .utf8)!)
+    header.append(UInt32(pcmDataSize).littleEndian.data)
+    
+    return header
+}
+
+// Add extension to help with binary data conversion
+extension FixedWidthInteger {
+    var data: Data {
+        var value = self.littleEndian
+        return Data(bytes: &value, count: MemoryLayout<Self>.size)
     }
 }
 

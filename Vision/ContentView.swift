@@ -144,9 +144,18 @@ struct ContentView: View {
                     
                     // Speaker Button
                     Button(action: {
-                        // If audio is playing, stop it
+                        // First, stop any currently playing audio
                         if isAudioPlaying {
-                            stopAudioEngine()
+                            if audioEngine != nil {
+                                // Stop streaming audio
+                                stopAudioEngine()
+                            } else if let player = audioPlayer {
+                                // Stop replay audio
+                                player.stop()
+                                audioPlayer = nil
+                                isAudioPlaying = false
+                                isSpeaking = false
+                            }
                         }
                         
                         guard !isProcessingFrame else { return }

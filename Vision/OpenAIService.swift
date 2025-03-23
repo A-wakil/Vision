@@ -188,6 +188,37 @@ class OpenAIService {
         return try await performRequestForAudio(.speech, body: request)
     }
     
+    func textToSpeechStreaming(
+        text: String,
+        model: String = "gpt-4o-mini-tts",
+        voice: String = "nova",
+        responseFormat: String = "pcm",
+        instructions: String? = nil,
+        onChunk: @escaping (Data) -> Void,
+        onComplete: @escaping (Error?) -> Void
+    ) {
+        let request = SpeechRequest(
+            model: model,
+            input: text,
+            voice: voice,
+            responseFormat: responseFormat,
+            instructions: instructions
+        )
+        
+        Task {
+            do {
+                try await performStreamingRequest(.speech, body: request, onChunk: onChunk)
+                await MainActor.run {
+                    onComplete(nil)
+                }
+            } catch {
+                await MainActor.run {
+                    onComplete(error)
+                }
+            }
+        }
+    }
+    
     // Add a new method specifically for audio data
     private func performRequestForAudio<T: Encodable>(_ endpoint: OpenAIEndpoint, body: T) async throws -> Data {
         guard let url = URL(string: OpenAIConfig.baseURL + endpoint.path) else {
@@ -221,6 +252,70 @@ class OpenAIService {
         }
         
         return data  // Return the raw audio data
+    }
+    
+    // Add a new method for streaming audio data
+    private func performStreamingRequest<T: Encodable>(_ endpoint: OpenAIEndpoint, body: T, onChunk: @escaping (Data) -> Void) async throws {
+        guard let url = URL(string: OpenAIConfig.baseURL + endpoint.path) else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(OpenAIConfig.apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        if httpResponse.statusCode != 200 {
+            // Handle error response
+            var errorData = Data()
+            for try await byte in asyncBytes {
+                errorData.append(byte)
+            }
+            
+            if let errorJson = try? JSONSerialization.jsonObject(with: errorData) as? [String: Any],
+               let error = errorJson["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("OpenAI API Error: \(message)")
+                throw NSError(domain: "", code: httpResponse.statusCode,
+                            userInfo: [NSLocalizedDescriptionKey: message])
+            } else if let errorText = String(data: errorData, encoding: .utf8) {
+                print("Response Error: \(errorText)")
+                throw NSError(domain: "", code: httpResponse.statusCode,
+                            userInfo: [NSLocalizedDescriptionKey: "Status \(httpResponse.statusCode): \(errorText)"])
+            }
+        }
+        
+        // Process the streaming response
+        let bufferSize = 4096 // Adjust buffer size as needed
+        var buffer = Data(capacity: bufferSize)
+        
+        for try await byte in asyncBytes {
+            buffer.append(byte)
+            
+            // When buffer reaches a certain size, send it to the callback
+            if buffer.count >= bufferSize {
+                let bufferCopy = buffer // Create a copy of the buffer
+                await MainActor.run {
+                    onChunk(bufferCopy)
+                }
+                buffer = Data(capacity: bufferSize)
+            }
+        }
+        
+        // Send any remaining data
+        if !buffer.isEmpty {
+            let finalBufferCopy = buffer // Create a copy of the final buffer
+            await MainActor.run {
+                onChunk(finalBufferCopy)
+            }
+        }
     }
     
     // Original performRequest remains for JSON responses

@@ -8,6 +8,7 @@
 import SwiftUI
 import AVFoundation
 import CoreImage
+import Accelerate
 
 struct ContentView: View {
     @StateObject private var frameHandler = FrameHandler()
@@ -19,6 +20,24 @@ struct ContentView: View {
     @State private var currentLanguage = "en" // Default to English
     @State private var showLanguageSelector = false
     @State private var audioPlayer: AVAudioPlayer?
+    @State private var audioUpdateCounter = 0
+    @State private var lastAudioUpdateTime = Date()
+    
+    // Add this to store the delegate
+    @State private var audioPlayerDelegate: AudioPlayerDelegate?
+    
+    // Add this to track if audio is currently playing
+    @State private var isAudioPlaying = false
+    
+    // Audio engine components
+    @State private var audioEngine: AVAudioEngine?
+    @State private var audioPlayerNode: AVAudioPlayerNode?
+    @State private var audioFile: AVAudioFile?
+    @State private var audioBuffer = [Float]()
+    @State private var audioFormat: AVAudioFormat?
+    
+    // Add this state variable to store complete audio data
+    @State private var completeAudioData: Data?
     
     let supportedLanguages = [
         "en": "English", "es": "Spanish", "fr": "French",
@@ -55,75 +74,120 @@ struct ContentView: View {
             VStack {
                 Spacer()
                 HStack(spacing: 40) {
-                    // Replay Button
+                    // Replay/Stop Button
                     Button(action: {
-                        audioPlayer?.play()
+                        if isAudioPlaying {
+                            // Stop audio if playing
+                            stopAudioEngine()
+                            print("Audio manually stopped by user")
+                        } else if let audioData = completeAudioData {
+                            // Replay the complete audio
+                            do {
+                                // Setup audio session
+                                try AVAudioSession.sharedInstance().setCategory(.playback)
+                                try AVAudioSession.sharedInstance().setActive(true)
+                                
+                                // Create audio player
+                                let player = try AVAudioPlayer(data: audioData)
+                                audioPlayer = player
+                                
+                                // Create and store the delegate
+                                audioPlayerDelegate = AudioPlayerDelegate(
+                                    onPlay: { 
+                                        isSpeaking = true 
+                                        isAudioPlaying = true
+                                        print("Replay started")
+                                    },
+                                    onStop: { 
+                                        isSpeaking = false 
+                                        isAudioPlaying = false
+                                        print("Replay stopped")
+                                    }
+                                )
+                                
+                                // Set the delegate
+                                player.delegate = audioPlayerDelegate
+                                
+                                // Play the audio
+                                player.prepareToPlay()
+                                if player.play() {
+                                    isAudioPlaying = true
+                                    isSpeaking = true
+                                    print("Audio replay started")
+                                } else {
+                                    print("Failed to start audio replay")
+                                }
+                            } catch {
+                                print("Error replaying audio: \(error)")
+                            }
+                        }
                     }) {
                         Circle()
                             .fill(Color.black.opacity(0.6))
                             .frame(width: 60, height: 60)
                             .overlay(
-                                Image(systemName: "arrow.clockwise")
+                                Image(systemName: isAudioPlaying ? "stop.fill" : "arrow.clockwise")
                                     .font(.system(size: 24))
                                     .foregroundColor(.white)
                             )
                     }
-                    .disabled(audioPlayer == nil)
+                    .disabled(isAudioPlaying == false && completeAudioData == nil) // Enable only when audio is playing or we have data to replay
                     
                     // Speaker Button
                     Button(action: {
+                        // If audio is playing, stop it
+                        if isAudioPlaying {
+                            stopAudioEngine()
+                        }
+                        
                         guard !isProcessingFrame else { return }
-                        Task {
-                            do {
-                                isProcessingFrame = true
-                                if let frame = frameHandler.frame {
-                                    let ciImage = CIImage(cgImage: frame)
-                                    let context = CIContext()
-                                    if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
-                                        // Get image description from OpenAI Vision
-                                        let description = try await openAIService.describeImage(imageData, language: currentLanguage)
-                                        print("Got description, attempting TTS...")
+                        isProcessingFrame = true
+                        isSpeaking = false
+                        
+                        // Start timing
+                        let startTime = Date()
+                        print("⏱️ [0ms] Starting image processing")
+                        
+                        if let frame = frameHandler.frame {
+                            let ciImage = CIImage(cgImage: frame)
+                            let context = CIContext()
+                            if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
+                                Task {
+                                    do {
+                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Image converted to JPEG, sending to OpenAI")
                                         
-                                        // Convert description to speech using the new model
-                                        let pcmData = try await openAIService.textToSpeech(
+                                        let description = try await openAIService.describeImage(imageData, language: currentLanguage)
+                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Got description (\(description.count) chars), starting TTS streaming")
+                                        
+                                        // Setup audio engine
+                                        await setupAudioEngine()
+                                        
+                                        // Start streaming
+                                        openAIService.textToSpeechStreaming(
                                             text: description,
                                             model: "gpt-4o-mini-tts",
                                             voice: "nova",
-                                            responseFormat: "pcm"
-                                        )
-                                        
-                                        // Convert PCM to WAV format
-                                        let wavData = try createWaveFile(pcmData: pcmData)
-                                        print("Converted PCM to WAV format")
-                                        
-                                        // Play the audio
-                                        do {
-                                            audioPlayer = try AVAudioPlayer(data: wavData)
-                                            print("Created audio player")
-                                            
-                                            // Setup audio session
-                                            try AVAudioSession.sharedInstance().setCategory(.playback)
-                                            try AVAudioSession.sharedInstance().setActive(true)
-                                            print("Audio session activated")
-                                            
-                                            if audioPlayer?.play() == true {
-                                                print("Started playing audio")
-                                                isSpeaking = true
-                                            } else {
-                                                print("Failed to start audio playback")
+                                            responseFormat: "pcm",
+                                            onChunk: { pcmChunk in
+                                                Task {
+                                                    await processAudioChunk(pcmChunk, startTime: startTime)
+                                                }
+                                            },
+                                            onComplete: { error in
+                                                Task {
+                                                    await handleStreamingComplete(error, startTime: startTime)
+                                                }
                                             }
-                                        } catch {
-                                            print("Audio setup error: \(error)")
-                                            throw error
-                                        }
+                                        )
+                                    } catch {
+                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
+                                        showingError = true
+                                        errorMessage = error.localizedDescription
+                                        isProcessingFrame = false
+                                        isSpeaking = false
                                     }
                                 }
-                            } catch {
-                                print("Error: \(error)")
-                                showingError = true
-                                errorMessage = error.localizedDescription
                             }
-                            isProcessingFrame = false
                         }
                     }) {
                         Circle()
@@ -191,6 +255,138 @@ struct ContentView: View {
                 })
             }
         }
+    }
+    
+    // Add these methods to handle audio streaming
+    
+    func setupAudioEngine() async {
+        await MainActor.run {
+            // Stop any existing audio
+            stopAudioEngine()
+            
+            // Create new audio engine components
+            audioEngine = AVAudioEngine()
+            audioPlayerNode = AVAudioPlayerNode()
+            audioBuffer = []
+            
+            // Configure audio session
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback)
+                try AVAudioSession.sharedInstance().setActive(true)
+                
+                // Setup audio format (24kHz, mono, 16-bit PCM)
+                audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, 
+                                           sampleRate: 24000, 
+                                           channels: 1, 
+                                           interleaved: false)
+                
+                if let engine = audioEngine, let playerNode = audioPlayerNode, let format = audioFormat {
+                    // Connect nodes
+                    engine.attach(playerNode)
+                    engine.connect(playerNode, to: engine.mainMixerNode, format: format)
+                    
+                    // Start engine
+                    try engine.start()
+                    print("Audio engine started successfully")
+                    
+                    isAudioPlaying = true
+                }
+            } catch {
+                print("Error setting up audio engine: \(error)")
+                isAudioPlaying = false
+            }
+        }
+    }
+    
+    func processAudioChunk(_ pcmChunk: Data, startTime: Date) async {
+        // Convert PCM data to float array
+        let pcmSamples = pcmChunk.withUnsafeBytes { pointer -> [Int16] in
+            let int16Pointer = pointer.bindMemory(to: Int16.self)
+            return Array(int16Pointer)
+        }
+        
+        // Convert Int16 samples to Float
+        var floatSamples = [Float](repeating: 0, count: pcmSamples.count)
+        vDSP_vflt16(pcmSamples, 1, &floatSamples, 1, vDSP_Length(pcmSamples.count))
+        
+        // Normalize to -1.0 to 1.0 range
+        var normalizedSamples = [Float](repeating: 0, count: floatSamples.count)
+        var divisor = Float(Int16.max)
+        vDSP_vsdiv(floatSamples, 1, &divisor, &normalizedSamples, 1, vDSP_Length(floatSamples.count))
+        
+        await MainActor.run {
+            // Add to buffer
+            audioBuffer.append(contentsOf: normalizedSamples)
+            
+            // Create buffer from samples
+            if let format = audioFormat, let playerNode = audioPlayerNode {
+                let bufferSize = normalizedSamples.count
+                let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(bufferSize))
+                
+                if let channelData = audioBuffer?.floatChannelData {
+                    for i in 0..<bufferSize {
+                        channelData[0][i] = normalizedSamples[i]
+                    }
+                    audioBuffer?.frameLength = AVAudioFrameCount(bufferSize)
+                    
+                    // Schedule buffer for playback
+                    playerNode.scheduleBuffer(audioBuffer!, completionHandler: nil)
+                    
+                    // Start playback if not already playing
+                    if !playerNode.isPlaying {
+                        playerNode.play()
+                        isSpeaking = true
+                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Audio streaming started")
+                    }
+                }
+            }
+        }
+    }
+    
+    func handleStreamingComplete(_ error: Error?, startTime: Date) async {
+        await MainActor.run {
+            if let error = error {
+                print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Streaming error: \(error)")
+                showingError = true
+                errorMessage = error.localizedDescription
+                completeAudioData = nil
+            } else {
+                print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Streaming completed successfully")
+                
+                // Save the complete audio buffer for replay
+                if !audioBuffer.isEmpty, let format = audioFormat {
+                    // Convert float buffer to PCM data
+                    let bufferSize = audioBuffer.count
+                    var int16Samples = [Int16](repeating: 0, count: bufferSize)
+                    
+                    // Scale back to Int16 range
+                    var scaleFactor = Float(Int16.max)
+                    vDSP_vsmul(audioBuffer, 1, &scaleFactor, &audioBuffer, 1, vDSP_Length(bufferSize))
+                    
+                    // Convert to Int16
+                    vDSP_vfix16(audioBuffer, 1, &int16Samples, 1, vDSP_Length(bufferSize))
+                    
+                    // Create PCM data
+                    let pcmData = Data(bytes: int16Samples, count: int16Samples.count * 2)
+                    
+                    // Create WAV data
+                    completeAudioData = try? createWaveFile(pcmData: pcmData)
+                    print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Saved complete audio for replay (\(completeAudioData?.count ?? 0) bytes)")
+                }
+            }
+            isProcessingFrame = false
+        }
+    }
+    
+    func stopAudioEngine() {
+        // Stop and clean up audio engine
+        audioPlayerNode?.stop()
+        audioEngine?.stop()
+        audioPlayerNode = nil
+        audioEngine = nil
+        isSpeaking = false
+        isAudioPlaying = false
+        print("Audio engine stopped")
     }
 }
 
@@ -306,6 +502,38 @@ extension FixedWidthInteger {
     var data: Data {
         var value = self.littleEndian
         return Data(bytes: &value, count: MemoryLayout<Self>.size)
+    }
+}
+
+// Update the AudioPlayerDelegate to track isAudioPlaying
+class AudioPlayerDelegate: NSObject, AVAudioPlayerDelegate {
+    private let onPlay: () -> Void
+    private let onStop: () -> Void
+    
+    init(onPlay: @escaping () -> Void, onStop: @escaping () -> Void) {
+        self.onPlay = onPlay
+        self.onStop = onStop
+        super.init()
+    }
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            self.onStop()
+        }
+    }
+    
+    func audioPlayerBeginInterruption(_ player: AVAudioPlayer) {
+        DispatchQueue.main.async {
+            self.onStop()
+        }
+    }
+    
+    func audioPlayerEndInterruption(_ player: AVAudioPlayer, withOptions flags: Int) {
+        if player.play() {
+            DispatchQueue.main.async {
+                self.onPlay()
+            }
+        }
     }
 }
 

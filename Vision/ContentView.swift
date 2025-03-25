@@ -78,17 +78,19 @@ struct ContentView: View {
                     Button(action: {
                         if isAudioPlaying {
                             // Stop audio if playing
-                            if audioEngine != nil {
+                            if let engine = audioEngine, engine.isRunning {
                                 // Stop streaming audio
                                 stopAudioEngine()
-                            } else if let player = audioPlayer {
-                                // Stop replay audio
+                            } 
+                            
+                            // Always try to stop the audio player if it exists
+                            if let player = audioPlayer {
                                 player.stop()
                                 audioPlayer = nil
                                 isAudioPlaying = false
                                 isSpeaking = false
+                                print("Audio player manually stopped by user")
                             }
-                            print("Audio manually stopped by user")
                         } else if let audioData = completeAudioData {
                             // Replay the complete audio
                             do {
@@ -98,35 +100,48 @@ struct ContentView: View {
                                 
                                 // Create audio player
                                 let player = try AVAudioPlayer(data: audioData)
+                                
+                                // Set state before playing to ensure stop button works immediately
+                                isAudioPlaying = true
+                                isSpeaking = true
+                                
+                                // Store the player
                                 audioPlayer = player
                                 
                                 // Create and store the delegate
-                                audioPlayerDelegate = AudioPlayerDelegate(
+                                let delegate = AudioPlayerDelegate(
                                     onPlay: { 
-                                        isSpeaking = true 
-                                        isAudioPlaying = true
                                         print("Replay started")
                                     },
                                     onStop: { 
-                                        isSpeaking = false 
-                                        isAudioPlaying = false
-                                        print("Replay stopped")
+                                        DispatchQueue.main.async {
+                                            self.isSpeaking = false 
+                                            self.isAudioPlaying = false
+                                            print("Replay stopped")
+                                        }
                                     }
                                 )
                                 
+                                // Store the delegate to prevent it from being deallocated
+                                audioPlayerDelegate = delegate
+                                
                                 // Set the delegate
-                                player.delegate = audioPlayerDelegate
+                                player.delegate = delegate
                                 
                                 // Play the audio
                                 player.prepareToPlay()
                                 if player.play() {
-                                    isAudioPlaying = true
-                                    isSpeaking = true
                                     print("Audio replay started")
                                 } else {
+                                    // Reset state if play fails
+                                    isAudioPlaying = false
+                                    isSpeaking = false
                                     print("Failed to start audio replay")
                                 }
                             } catch {
+                                // Reset state if there's an error
+                                isAudioPlaying = false
+                                isSpeaking = false
                                 print("Error replaying audio: \(error)")
                             }
                         }

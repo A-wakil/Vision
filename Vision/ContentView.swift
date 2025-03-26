@@ -39,6 +39,9 @@ struct ContentView: View {
     // Add this state variable to store complete audio data
     @State private var completeAudioData: Data?
     
+    // Add this for navigation
+    @State private var showCompanionView = false
+    
     let supportedLanguages = [
         "en": "English", "es": "Spanish", "fr": "French",
         "de": "German", "it": "Italian", "pt": "Portuguese",
@@ -48,229 +51,243 @@ struct ContentView: View {
     ]
     
     var body: some View {
-        ZStack {
-            // Camera View
-            FrameView(image: frameHandler.frame)
-                .ignoresSafeArea()
-            
-            // Error Banner
-            if showingError {
-                VStack {
-                    HStack {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                        Text("Error: \(errorMessage)")
+        NavigationView {
+            ZStack {
+                // Camera View
+                FrameView(image: frameHandler.frame)
+                    .ignoresSafeArea()
+                
+                // Error Banner
+                if showingError {
+                    VStack {
+                        HStack {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text("Error: \(errorMessage)")
+                        }
+                        .padding()
+                        .background(Color.black.opacity(0.75))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .padding(.top)
+                        Spacer()
                     }
-                    .padding()
-                    .background(Color.black.opacity(0.75))
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                    .padding(.top)
-                    Spacer()
                 }
-            }
-            
-            // Bottom Button Controls
-            VStack {
-                Spacer()
-                HStack(spacing: 40) {
-                    // Replay/Stop Button
-                    Button(action: {
-                        if isAudioPlaying {
-                            // Stop audio if playing
-                            if audioEngine != nil {
-                                // Stop streaming audio
-                                stopAudioEngine()
-                            } else if let player = audioPlayer {
-                                // Stop replay audio
-                                player.stop()
-                                audioPlayer = nil
-                                isAudioPlaying = false
-                                isSpeaking = false
-                            }
-                            print("Audio manually stopped by user")
-                        } else if let audioData = completeAudioData {
-                            // Replay the complete audio
-                            do {
-                                // Setup audio session
-                                try AVAudioSession.sharedInstance().setCategory(.playback)
-                                try AVAudioSession.sharedInstance().setActive(true)
-                                
-                                // Create audio player
-                                let player = try AVAudioPlayer(data: audioData)
-                                audioPlayer = player
-                                
-                                // Create and store the delegate
-                                audioPlayerDelegate = AudioPlayerDelegate(
-                                    onPlay: { 
-                                        isSpeaking = true 
+                
+                // Bottom Button Controls
+                VStack {
+                    Spacer()
+                    HStack(spacing: 40) {
+                        // Replay/Stop Button
+                        Button(action: {
+                            if isAudioPlaying {
+                                // Stop audio if playing
+                                if audioEngine != nil {
+                                    // Stop streaming audio
+                                    stopAudioEngine()
+                                } else if let player = audioPlayer {
+                                    // Stop replay audio
+                                    player.stop()
+                                    audioPlayer = nil
+                                    isAudioPlaying = false
+                                    isSpeaking = false
+                                }
+                                print("Audio manually stopped by user")
+                            } else if let audioData = completeAudioData {
+                                // Replay the complete audio
+                                do {
+                                    // Setup audio session
+                                    try AVAudioSession.sharedInstance().setCategory(.playback)
+                                    try AVAudioSession.sharedInstance().setActive(true)
+                                    
+                                    // Create audio player
+                                    let player = try AVAudioPlayer(data: audioData)
+                                    audioPlayer = player
+                                    
+                                    // Create and store the delegate
+                                    audioPlayerDelegate = AudioPlayerDelegate(
+                                        onPlay: { 
+                                            isSpeaking = true 
+                                            isAudioPlaying = true
+                                            print("Replay started")
+                                        },
+                                        onStop: { 
+                                            isSpeaking = false 
+                                            isAudioPlaying = false
+                                            print("Replay stopped")
+                                        }
+                                    )
+                                    
+                                    // Set the delegate
+                                    player.delegate = audioPlayerDelegate
+                                    
+                                    // Play the audio
+                                    player.prepareToPlay()
+                                    if player.play() {
                                         isAudioPlaying = true
-                                        print("Replay started")
-                                    },
-                                    onStop: { 
-                                        isSpeaking = false 
-                                        isAudioPlaying = false
-                                        print("Replay stopped")
+                                        isSpeaking = true
+                                        print("Audio replay started")
+                                    } else {
+                                        print("Failed to start audio replay")
+                                    }
+                                } catch {
+                                    print("Error replaying audio: \(error)")
+                                }
+                            }
+                        }) {
+                            Circle()
+                                .fill(Color.black.opacity(0.6))
+                                .frame(width: 60, height: 60)
+                                .overlay(
+                                    Image(systemName: isAudioPlaying ? "stop.fill" : "arrow.clockwise")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.white)
+                                )
+                        }
+                        .disabled(isAudioPlaying == false && completeAudioData == nil) // Enable only when audio is playing or we have data to replay
+                        
+                        // Speaker Button
+                        Button(action: {
+                            // First, stop any currently playing audio
+                            if isAudioPlaying {
+                                if audioEngine != nil {
+                                    // Stop streaming audio
+                                    stopAudioEngine()
+                                } else if let player = audioPlayer {
+                                    // Stop replay audio
+                                    player.stop()
+                                    audioPlayer = nil
+                                    isAudioPlaying = false
+                                    isSpeaking = false
+                                }
+                            }
+                            
+                            guard !isProcessingFrame else { return }
+                            isProcessingFrame = true
+                            isSpeaking = false
+                            
+                            // Start timing
+                            let startTime = Date()
+                            print("⏱️ [0ms] Starting image processing")
+                            
+                            if let frame = frameHandler.frame {
+                                let ciImage = CIImage(cgImage: frame)
+                                let context = CIContext()
+                                if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
+                                    Task {
+                                        do {
+                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Image converted to JPEG, sending to OpenAI")
+                                            
+                                            let description = try await openAIService.describeImage(imageData, language: currentLanguage)
+                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Got description (\(description.count) chars), starting TTS streaming")
+                                            
+                                            // Setup audio engine
+                                            await setupAudioEngine()
+                                            
+                                            // Start streaming
+                                            openAIService.textToSpeechStreaming(
+                                                text: description,
+                                                model: "gpt-4o-mini-tts",
+                                                voice: "nova",
+                                                responseFormat: "pcm",
+                                                onChunk: { pcmChunk in
+                                                    Task {
+                                                        await processAudioChunk(pcmChunk, startTime: startTime)
+                                                    }
+                                                },
+                                                onComplete: { error in
+                                                    Task {
+                                                        await handleStreamingComplete(error, startTime: startTime)
+                                                    }
+                                                }
+                                            )
+                                        } catch {
+                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
+                                            showingError = true
+                                            errorMessage = error.localizedDescription
+                                            isProcessingFrame = false
+                                            isSpeaking = false
+                                        }
+                                    }
+                                }
+                            }
+                        }) {
+                            Circle()
+                                .fill(Color.black.opacity(0.6))
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Group {
+                                        if isProcessingFrame {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                                .scaleEffect(1.5)
+                                        } else if isSpeaking {
+                                            AnimatedSpeakerView()
+                                        } else {
+                                            Image(systemName: "speaker.fill")
+                                                .font(.system(size: 30))
+                                                .foregroundColor(.white)
+                                        }
                                     }
                                 )
-                                
-                                // Set the delegate
-                                player.delegate = audioPlayerDelegate
-                                
-                                // Play the audio
-                                player.prepareToPlay()
-                                if player.play() {
-                                    isAudioPlaying = true
-                                    isSpeaking = true
-                                    print("Audio replay started")
-                                } else {
-                                    print("Failed to start audio replay")
-                                }
-                            } catch {
-                                print("Error replaying audio: \(error)")
-                            }
                         }
-                    }) {
-                        Circle()
-                            .fill(Color.black.opacity(0.6))
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                Image(systemName: isAudioPlaying ? "stop.fill" : "arrow.clockwise")
-                                    .font(.system(size: 24))
+                        .disabled(isProcessingFrame)
+                        
+                        // Language Button
+                        Button(action: {
+                            showLanguageSelector = true
+                        }) {
+                            Circle()
+                                .fill(Color.black.opacity(0.6))
+                                .frame(width: 60, height: 60)
+                                .overlay(
+                                    VStack(spacing: 2) {
+                                        Image(systemName: "globe")
+                                            .font(.system(size: 16))
+                                        Text(currentLanguage.uppercased())
+                                            .font(.system(size: 14, weight: .bold))
+                                    }
                                     .foregroundColor(.white)
-                            )
-                    }
-                    .disabled(isAudioPlaying == false && completeAudioData == nil) // Enable only when audio is playing or we have data to replay
-                    
-                    // Speaker Button
-                    Button(action: {
-                        // First, stop any currently playing audio
-                        if isAudioPlaying {
-                            if audioEngine != nil {
-                                // Stop streaming audio
-                                stopAudioEngine()
-                            } else if let player = audioPlayer {
-                                // Stop replay audio
-                                player.stop()
-                                audioPlayer = nil
-                                isAudioPlaying = false
-                                isSpeaking = false
-                            }
+                                )
                         }
-                        
-                        guard !isProcessingFrame else { return }
-                        isProcessingFrame = true
-                        isSpeaking = false
-                        
-                        // Start timing
-                        let startTime = Date()
-                        print("⏱️ [0ms] Starting image processing")
-                        
-                        if let frame = frameHandler.frame {
-                            let ciImage = CIImage(cgImage: frame)
-                            let context = CIContext()
-                            if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
-                                Task {
-                                    do {
-                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Image converted to JPEG, sending to OpenAI")
-                                        
-                                        let description = try await openAIService.describeImage(imageData, language: currentLanguage)
-                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Got description (\(description.count) chars), starting TTS streaming")
-                                        
-                                        // Setup audio engine
-                                        await setupAudioEngine()
-                                        
-                                        // Start streaming
-                                        openAIService.textToSpeechStreaming(
-                                            text: description,
-                                            model: "gpt-4o-mini-tts",
-                                            voice: "nova",
-                                            responseFormat: "pcm",
-                                            onChunk: { pcmChunk in
-                                                Task {
-                                                    await processAudioChunk(pcmChunk, startTime: startTime)
-                                                }
-                                            },
-                                            onComplete: { error in
-                                                Task {
-                                                    await handleStreamingComplete(error, startTime: startTime)
-                                                }
-                                            }
-                                        )
-                                    } catch {
-                                        print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
-                                        showingError = true
-                                        errorMessage = error.localizedDescription
-                                        isProcessingFrame = false
-                                        isSpeaking = false
-                                    }
-                                }
-                            }
-                        }
-                    }) {
-                        Circle()
-                            .fill(Color.black.opacity(0.6))
-                            .frame(width: 80, height: 80)
-                            .overlay(
-                                Group {
-                                    if isProcessingFrame {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                            .scaleEffect(1.5)
-                                    } else if isSpeaking {
-                                        AnimatedSpeakerView()
-                                    } else {
-                                        Image(systemName: "speaker.fill")
-                                            .font(.system(size: 30))
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                            )
                     }
-                    .disabled(isProcessingFrame)
-                    
-                    // Language Button
-                    Button(action: {
-                        showLanguageSelector = true
-                    }) {
-                        Circle()
-                            .fill(Color.black.opacity(0.6))
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                VStack(spacing: 2) {
-                                    Image(systemName: "globe")
-                                        .font(.system(size: 16))
-                                    Text(currentLanguage.uppercased())
-                                        .font(.system(size: 14, weight: .bold))
-                                }
-                                .foregroundColor(.white)
-                            )
-                    }
+                    .padding(.bottom, 30)
                 }
-                .padding(.bottom, 30)
             }
-        }
-        .sheet(isPresented: $showLanguageSelector) {
-            NavigationView {
-                List(supportedLanguages.sorted(by: { $0.value < $1.value }), id: \.key) { code, name in
-                    Button(action: {
-                        currentLanguage = code
-                        showLanguageSelector = false
-                    }) {
-                        HStack {
-                            Text(name)
-                            Spacer()
-                            if code == currentLanguage {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: CompanionView()) {
+                        Image(systemName: "person.wave.2.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.white)
+                            .padding(8)
+                            .background(Circle().fill(Color.black.opacity(0.6)))
+                    }
+                }
+            }
+            .sheet(isPresented: $showLanguageSelector) {
+                NavigationView {
+                    List(supportedLanguages.sorted(by: { $0.value < $1.value }), id: \.key) { code, name in
+                        Button(action: {
+                            currentLanguage = code
+                            showLanguageSelector = false
+                        }) {
+                            HStack {
+                                Text(name)
+                                Spacer()
+                                if code == currentLanguage {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
                             }
                         }
                     }
+                    .navigationTitle("Select Language")
+                    .navigationBarItems(trailing: Button("Done") {
+                        showLanguageSelector = false
+                    })
                 }
-                .navigationTitle("Select Language")
-                .navigationBarItems(trailing: Button("Done") {
-                    showLanguageSelector = false
-                })
             }
         }
     }

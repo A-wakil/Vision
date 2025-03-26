@@ -19,6 +19,7 @@
 		AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511A2D81EEF000E08445 /* VisionService.swift */; };
 		AB31511D2D81EF2000E08445 /* VisionBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511C2D81EF2000E08445 /* VisionBackend.swift */; };
 		AB31511F2D81EF4E00E08445 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB31511E2D81EF4E00E08445 /* OpenAIService.swift */; };
+		AB6B5E932D947B3E00E1BE37 /* CompanionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5E922D947B3D00E1BE37 /* CompanionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +55,7 @@
 		AB31511A2D81EEF000E08445 /* VisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionService.swift; sourceTree = "<group>"; };
 		AB31511C2D81EF2000E08445 /* VisionBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionBackend.swift; sourceTree = "<group>"; };
 		AB31511E2D81EF4E00E08445 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		AB6B5E922D947B3D00E1BE37 /* CompanionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +106,7 @@
 		AB3150E92D81ED4E00E08445 /* Vision */ = {
 			isa = PBXGroup;
 			children = (
+				AB6B5E912D947B2800E1BE37 /* Companion */,
 				AB3150EA2D81ED4E00E08445 /* VisionApp.swift */,
 				AB3150EC2D81ED4E00E08445 /* ContentView.swift */,
 				AB3150EE2D81ED5000E08445 /* Assets.xcassets */,
@@ -140,6 +143,14 @@
 				AB3151072D81ED5100E08445 /* VisionUITestsLaunchTests.swift */,
 			);
 			path = VisionUITests;
+			sourceTree = "<group>";
+		};
+		AB6B5E912D947B2800E1BE37 /* Companion */ = {
+			isa = PBXGroup;
+			children = (
+				AB6B5E922D947B3D00E1BE37 /* CompanionView.swift */,
+			);
+			path = Companion;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -277,6 +288,7 @@
 				AB3150ED2D81ED4E00E08445 /* ContentView.swift in Sources */,
 				AB31511D2D81EF2000E08445 /* VisionBackend.swift in Sources */,
 				AB3151172D81EDF400E08445 /* FrameHandler.swift in Sources */,
+				AB6B5E932D947B3E00E1BE37 /* CompanionView.swift in Sources */,
 				AB3150EB2D81ED4E00E08445 /* VisionApp.swift in Sources */,
 				AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */,
 			);
@@ -446,7 +458,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone usage for speech";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Microphone for AI Companion";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -477,7 +489,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone usage for speech";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Microphone for AI Companion";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

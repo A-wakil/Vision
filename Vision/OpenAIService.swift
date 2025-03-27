@@ -7,12 +7,6 @@
 
 import Foundation
 
-
-struct OpenAIConfig {
-    static let apiKey = ""
-    static let baseURL = "https://api.openai.com/v1"
-}
-
 enum OpenAIEndpoint {
     case vision
     case speech

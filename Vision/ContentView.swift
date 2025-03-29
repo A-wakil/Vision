@@ -96,30 +96,39 @@ struct ContentView: View {
                             } else if let audioData = completeAudioData {
                                 // Replay the complete audio
                                 do {
+                                    // First make sure any existing audio is fully stopped
+                                    if let existingPlayer = audioPlayer {
+                                        existingPlayer.stop()
+                                        audioPlayer = nil
+                                    }
+                                    
                                     // Setup audio session
                                     try AVAudioSession.sharedInstance().setCategory(.playback)
                                     try AVAudioSession.sharedInstance().setActive(true)
                                     
                                     // Create audio player
                                     let player = try AVAudioPlayer(data: audioData)
-                                    audioPlayer = player
                                     
-                                    // Create and store the delegate
-                                    audioPlayerDelegate = AudioPlayerDelegate(
+                                    // Create and store the delegate first
+                                    let delegate = AudioPlayerDelegate(
                                         onPlay: { 
-                                            isSpeaking = true 
-                                            isAudioPlaying = true
+                                            self.isSpeaking = true 
+                                            self.isAudioPlaying = true
                                             print("Replay started")
                                         },
                                         onStop: { 
-                                            isSpeaking = false 
-                                            isAudioPlaying = false
+                                            self.isSpeaking = false 
+                                            self.isAudioPlaying = false
                                             print("Replay stopped")
                                         }
                                     )
                                     
-                                    // Set the delegate
-                                    player.delegate = audioPlayerDelegate
+                                    // Assign the delegate before setting the player
+                                    player.delegate = delegate
+                                    
+                                    // Store both player and delegate
+                                    audioPlayerDelegate = delegate
+                                    audioPlayer = player
                                     
                                     // Play the audio
                                     player.prepareToPlay()
@@ -129,9 +138,14 @@ struct ContentView: View {
                                         print("Audio replay started")
                                     } else {
                                         print("Failed to start audio replay")
+                                        // Clean up if playback fails
+                                        audioPlayer = nil
+                                        audioPlayerDelegate = nil
                                     }
                                 } catch {
                                     print("Error replaying audio: \(error)")
+                                    audioPlayer = nil
+                                    audioPlayerDelegate = nil
                                 }
                             }
                         }) {
@@ -420,6 +434,12 @@ struct ContentView: View {
                             DispatchQueue.main.async {
                                 self.isSpeaking = false
                                 self.isAudioPlaying = false
+                                
+                                // Make sure to completely clean up the audio engine
+                                // This ensures proper state for replay functionality
+                                self.audioPlayerNode = nil
+                                self.audioEngine = nil
+                                
                                 print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] All audio playback completed")
                             }
                         }
@@ -434,6 +454,11 @@ struct ContentView: View {
         // Stop and clean up audio engine
         audioPlayerNode?.stop()
         audioEngine?.stop()
+        
+        // Reset audio state
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        
+        // Clear references
         audioPlayerNode = nil
         audioEngine = nil
         isSpeaking = false

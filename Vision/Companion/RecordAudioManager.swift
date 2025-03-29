@@ -21,11 +21,35 @@ class RecordAudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
     
     // MARK: - Start audio recording
     func startRecordAudio() {
+        // If already recording, clean up first
         if audioUnit != nil {
-            RecordAudioManager.shared.count = 0
-            RecordAudioManager.shared.local_record_Array = [[String: Any]]()
-            AudioOutputUnitStart(audioUnit!)
+            pauseCaptureAudio()
+            // Small delay to ensure previous recording is properly stopped
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self._startRecordAudio()
+            }
             return
+        }
+        
+        _startRecordAudio()
+    }
+    
+    private func _startRecordAudio() {
+        RecordAudioManager.shared.count = 0
+        RecordAudioManager.shared.local_record_Array = [[String: Any]]()
+        
+        // If we already have an audio unit, just start it
+        if audioUnit != nil {
+            if AudioOutputUnitStart(audioUnit!) == noErr {
+                print("Audio recording resumed")
+                return
+            } else {
+                // If failed to restart, release and recreate
+                if let au = audioUnit {
+                    AudioComponentInstanceDispose(au)
+                    audioUnit = nil
+                }
+            }
         }
         
         // Check microphone permission
@@ -119,7 +143,7 @@ class RecordAudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
                                      UInt32(MemoryLayout.size(ofValue: enable_out)))
         
         // Initialize and start
-        if AudioUnitUninitialize(audioUnit) == noErr {
+        if AudioUnitInitialize(audioUnit) == noErr {
             print("Audio Unit initialized successfully")
             if AudioOutputUnitStart(audioUnit) == noErr {
                 print("Audio Unit started successfully")

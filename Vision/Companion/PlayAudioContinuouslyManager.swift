@@ -44,11 +44,42 @@ class PlayAudioContinuouslyManager: NSObject {
     var playerNode: AVAudioPlayerNode!
     var audioFormat: AVAudioFormat!
     var audio_event_Queue = [[String: Any]]()
+    private var isCurrentlyPlaying = false
+    private var audioMonitorTimer: Timer?
     
     func playAudio(eventInfo: [String: Any]) {
         audio_event_Queue.append(eventInfo)
         if audio_event_Queue.count == 1 {
+            startAudioMonitoring()
             playNextAudio()
+        }
+    }
+    
+    private func startAudioMonitoring() {
+        // Stop existing timer if any
+        audioMonitorTimer?.invalidate()
+        
+        // Create a timer to check for playback completion
+        audioMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            if self.isCurrentlyPlaying && self.audio_event_Queue.isEmpty {
+                // We were playing but queue is now empty - playback is complete
+                self.isCurrentlyPlaying = false
+                self.audioMonitorTimer?.invalidate()
+                
+                // Post notification that playback is complete
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name(rawValue: "AudioPlaybackFinished"), object: nil)
+                    
+                    // Resume audio recording after a short delay to prevent immediate feedback
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if WebSocketManager.shared.connected_status == "connected" {
+                            RecordAudioManager.shared.startRecordAudio()
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -60,6 +91,8 @@ class PlayAudioContinuouslyManager: NSObject {
         if audio_event_Queue.count <= 0 {
             return
         }
+        
+        isCurrentlyPlaying = true
         
         let firstAudioInfo = audio_event_Queue[0]
         let base64String = firstAudioInfo["delta"] as? String ?? ""
@@ -129,5 +162,11 @@ class PlayAudioContinuouslyManager: NSObject {
         if audio_event_Queue.count > 0 {
             playNextAudio()
         }
+    }
+    
+    // Clean up resources when done
+    func cleanup() {
+        audioMonitorTimer?.invalidate()
+        audioMonitorTimer = nil
     }
 }

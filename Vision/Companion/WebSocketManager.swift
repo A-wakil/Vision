@@ -108,6 +108,12 @@ class WebSocketManager: NSObject, WebSocketDelegate {
                         self.audio_String = ""
                         self.audio_String_count = 0
                         PlayAudioContinuouslyManager.shared.audio_event_Queue.removeAll()
+                        
+                        // Ensure we're in a state to process user speech
+                        DispatchQueue.main.async {
+                            // Post notification to update UI
+                            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "ConversationStateChanged"), object: ["state": "userSpeaking"])
+                        }
                     }
                     
                     // Response audio delta
@@ -116,6 +122,11 @@ class WebSocketManager: NSObject, WebSocketDelegate {
                             let audio_eventInfo = ["delta": delta, "index": self.audio_String_count] as [String: Any]
                             PlayAudioContinuouslyManager.shared.playAudio(eventInfo: audio_eventInfo)
                             self.audio_String_count += 1
+                            
+                            // If this is the first audio chunk, pause recording to prevent feedback
+                            if self.audio_String_count == 1 {
+                                RecordAudioManager.shared.pauseCaptureAudio()
+                            }
                         }
                     }
                     

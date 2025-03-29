@@ -293,12 +293,59 @@ struct CompanionView: View {
                     self.conversationState = .aiSpeaking
                     self.aiPulseScale = 1.3
                 }
+                
+                // Pause audio recording to prevent feedback loop
+                RecordAudioManager.shared.pauseCaptureAudio()
+                
+                // Set a timer to reset conversation state after AI stops speaking
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if self.conversationState == .aiSpeaking {
+                        withAnimation {
+                            self.conversationState = .idle
+                            self.aiPulseScale = 1.0
+                        }
+                    }
+                }
             }
         }
         
         NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "showMonitorAudioDataView"), object: nil, queue: .main) { notification in
             if let dict = notification.object as? [String: Any], let rmsValue = dict["rmsValue"] as? Float {
                 self.currentRmsValue = rmsValue
+            }
+        }
+        
+        // Add observer for when AI finishes playing audio
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "AudioPlaybackFinished"), object: nil, queue: .main) { _ in
+            withAnimation {
+                self.conversationState = .idle
+                self.aiPulseScale = 1.0
+            }
+        }
+        
+        // Add observer for conversation state changes
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "ConversationStateChanged"), object: nil, queue: .main) { notification in
+            if let dict = notification.object as? [String: String], let state = dict["state"] {
+                withAnimation {
+                    switch state {
+                    case "userSpeaking":
+                        self.conversationState = .userSpeaking
+                        self.userPulseScale = 1.3
+                        self.aiPulseScale = 1.0
+                    case "aiThinking":
+                        self.conversationState = .aiThinking
+                        self.userPulseScale = 1.0
+                    case "aiSpeaking":
+                        self.conversationState = .aiSpeaking
+                        self.aiPulseScale = 1.3
+                    case "idle":
+                        self.conversationState = .idle
+                        self.userPulseScale = 1.0
+                        self.aiPulseScale = 1.0
+                    default:
+                        break
+                    }
+                }
             }
         }
     }

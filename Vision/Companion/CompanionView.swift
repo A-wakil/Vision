@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct CompanionView: View {
     // State variables to track conversation status
@@ -14,6 +15,17 @@ struct CompanionView: View {
     // Animation properties
     @State private var userPulseScale: CGFloat = 1.0
     @State private var aiPulseScale: CGFloat = 1.0
+    
+    // State variables for text display
+    @State private var userText: String = ""
+    @State private var aiText: String = ""
+    
+    // Audio visualization
+    @State private var currentRmsValue: Float = 0.0
+    
+    // WebSocket connection status
+    @State private var isConnected: Bool = false
+    @State private var isConnecting: Bool = false
     
     var body: some View {
         ZStack {
@@ -33,7 +45,73 @@ struct CompanionView: View {
                     .foregroundColor(.white)
                     .padding(.top, 20)
                 
+                // Connection status
+                if !isConnected {
+                    Button(action: {
+                        if !isConnecting {
+                            connectToOpenAI()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: isConnecting ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
+                            Text(isConnecting ? "Connecting..." : "Connect to OpenAI")
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(
+                            Capsule()
+                                .fill(isConnecting ? Color.orange.opacity(0.7) : Color.blue.opacity(0.7))
+                        )
+                        .padding(.top, 10)
+                    }
+                    .disabled(isConnecting)
+                } else {
+                    Button(action: {
+                        disconnectFromOpenAI()
+                    }) {
+                        HStack {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                            Text("Disconnect")
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(
+                            Capsule()
+                                .fill(Color.green.opacity(0.7))
+                        )
+                        .padding(.top, 10)
+                    }
+                }
+                
                 Spacer()
+                
+                // Text displays
+                VStack(spacing: 15) {
+                    if !userText.isEmpty {
+                        Text("You: \(userText)")
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.blue.opacity(0.3))
+                            )
+                            .padding(.horizontal)
+                    }
+                    
+                    if !aiText.isEmpty {
+                        Text("AI: \(aiText)")
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.purple.opacity(0.3))
+                            )
+                            .padding(.horizontal)
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 20)
                 
                 // Status display
                 Text(conversationState.description)
@@ -46,6 +124,13 @@ struct CompanionView: View {
                             .fill(conversationState.color.opacity(0.7))
                     )
                     .padding(.bottom, 20)
+                
+                // Audio visualization
+                if conversationState == .userSpeaking || conversationState == .aiSpeaking {
+                    AudioVisualizerViewRepresentable(rmsValue: currentRmsValue)
+                        .frame(height: 60)
+                        .padding(.bottom, 10)
+                }
                 
                 // Conversation visualization
                 HStack(spacing: 40) {
@@ -142,7 +227,7 @@ struct CompanionView: View {
                             .foregroundColor(.white)
                     }
                 }
-                .disabled(conversationState == .aiSpeaking || conversationState == .aiThinking)
+                .disabled(conversationState == .aiSpeaking || conversationState == .aiThinking || !isConnected)
                 .padding(.bottom, 30)
             }
         }
@@ -150,13 +235,143 @@ struct CompanionView: View {
             // Set initial animation states
             userPulseScale = 1.0
             aiPulseScale = 1.0
+            
+            // Setup notification observers
+            setupNotificationObservers()
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    // MARK: - WebSocket Methods
+    
+    private func connectToOpenAI() {
+        isConnecting = true
+        WebSocketManager.shared.connectWebSocketOfOpenAi()
+    }
+    
+    private func disconnectFromOpenAI() {
+        // Stop any ongoing audio
+        PlayAudioContinuouslyManager.shared.audio_event_Queue.removeAll()
+        WebSocketManager.shared.audio_String = ""
+        WebSocketManager.shared.audio_String_count = 0
+        
+        // Stop audio recording
+        RecordAudioManager.shared.pauseCaptureAudio()
+        
+        // Disconnect WebSocket
+        WebSocketManager.shared.socket.disconnect()
+        
+        // Update UI state
+        isConnected = false
+        conversationState = .idle
+    }
+    
+    // MARK: - Notification Handlers
+    
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "WebSocketManager_connected_status_changed"), object: nil, queue: .main) { notification in
+            self.handleConnectionStatusChange()
+        }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "UserStartToSpeek"), object: nil, queue: .main) { _ in
+            self.userText = ""
+            self.aiText = ""
+        }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "HaveInputText"), object: nil, queue: .main) { notification in
+            if let dict = notification.object as? [String: Any], let text = dict["text"] as? String {
+                self.userText = text
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "HaveOutputText"), object: nil, queue: .main) { notification in
+            if let dict = notification.object as? [String: String], let text = dict["text"] {
+                self.aiText = text
+                
+                // Update conversation state
+                withAnimation {
+                    self.conversationState = .aiSpeaking
+                    self.aiPulseScale = 1.3
+                }
+                
+                // Pause audio recording to prevent feedback loop
+                RecordAudioManager.shared.pauseCaptureAudio()
+                
+                // Set a timer to reset conversation state after AI stops speaking
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if self.conversationState == .aiSpeaking {
+                        withAnimation {
+                            self.conversationState = .idle
+                            self.aiPulseScale = 1.0
+                        }
+                    }
+                }
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "showMonitorAudioDataView"), object: nil, queue: .main) { notification in
+            if let dict = notification.object as? [String: Any], let rmsValue = dict["rmsValue"] as? Float {
+                self.currentRmsValue = rmsValue
+            }
+        }
+        
+        // Add observer for when AI finishes playing audio
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "AudioPlaybackFinished"), object: nil, queue: .main) { _ in
+            withAnimation {
+                self.conversationState = .idle
+                self.aiPulseScale = 1.0
+            }
+        }
+        
+        // Add observer for conversation state changes
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "ConversationStateChanged"), object: nil, queue: .main) { notification in
+            if let dict = notification.object as? [String: String], let state = dict["state"] {
+                withAnimation {
+                    switch state {
+                    case "userSpeaking":
+                        self.conversationState = .userSpeaking
+                        self.userPulseScale = 1.3
+                        self.aiPulseScale = 1.0
+                    case "aiThinking":
+                        self.conversationState = .aiThinking
+                        self.userPulseScale = 1.0
+                    case "aiSpeaking":
+                        self.conversationState = .aiSpeaking
+                        self.aiPulseScale = 1.3
+                    case "idle":
+                        self.conversationState = .idle
+                        self.userPulseScale = 1.0
+                        self.aiPulseScale = 1.0
+                    default:
+                        break
+                    }
+                }
+            }
+        }
+    }
+    
+    private func handleConnectionStatusChange() {
+        let status = WebSocketManager.shared.connected_status
+        if status == "not_connected" {
+            isConnected = false
+            isConnecting = false
+            conversationState = .idle
+        } else if status == "connecting" {
+            isConnected = false
+            isConnecting = true
+        } else if status == "connected" {
+            isConnected = true
+            isConnecting = false
+        }
     }
     
     // MARK: - Helper Methods
     
     private func startUserSpeaking() {
+        if !isConnected {
+            return
+        }
+        
         withAnimation {
             conversationState = .userSpeaking
             userPulseScale = 1.3
@@ -168,27 +383,6 @@ struct CompanionView: View {
         withAnimation {
             conversationState = .aiThinking
             userPulseScale = 1.0
-        }
-        
-        // Simulate AI thinking and then speaking
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            simulateAIResponse()
-        }
-    }
-    
-    private func simulateAIResponse() {
-        withAnimation {
-            conversationState = .aiSpeaking
-            aiPulseScale = 1.3
-        }
-        
-        // Simulate AI speaking for a few seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            // Return to idle state
-            withAnimation {
-                conversationState = .idle
-                aiPulseScale = 1.0
-            }
         }
     }
 }

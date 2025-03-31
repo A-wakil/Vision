@@ -25,7 +25,7 @@
 		AB6B5EAF2D95D35E00E1BE37 /* RecordAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EAE2D95D35E00E1BE37 /* RecordAudioManager.swift */; };
 		AB6B5EB12D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EB02D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift */; };
 		AB6B5EB32D95D38600E1BE37 /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EB22D95D38600E1BE37 /* AudioVisualizerView.swift */; };
-		AB6B5EB52D95D54900E1BE37 /* OpenAIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EB42D95D54900E1BE37 /* OpenAIConfig.swift */; };
+		ABF7776F2D989C4100C279DA /* OpenAIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,7 +66,7 @@
 		AB6B5EAE2D95D35E00E1BE37 /* RecordAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAudioManager.swift; sourceTree = "<group>"; };
 		AB6B5EB02D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayAudioContinuouslyManager.swift; sourceTree = "<group>"; };
 		AB6B5EB22D95D38600E1BE37 /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
-		AB6B5EB42D95D54900E1BE37 /* OpenAIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConfig.swift; sourceTree = "<group>"; };
+		ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConfig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,7 +128,7 @@
 				AB31511A2D81EEF000E08445 /* VisionService.swift */,
 				AB31511C2D81EF2000E08445 /* VisionBackend.swift */,
 				AB31511E2D81EF4E00E08445 /* OpenAIService.swift */,
-				AB6B5EB42D95D54900E1BE37 /* OpenAIConfig.swift */,
+				ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */,
 			);
 			path = Vision;
 			sourceTree = "<group>";
@@ -316,7 +316,7 @@
 				AB6B5E932D947B3E00E1BE37 /* CompanionView.swift in Sources */,
 				AB6B5EB12D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift in Sources */,
 				AB3150EB2D81ED4E00E08445 /* VisionApp.swift in Sources */,
-				AB6B5EB52D95D54900E1BE37 /* OpenAIConfig.swift in Sources */,
+				ABF7776F2D989C4100C279DA /* OpenAIConfig.swift in Sources */,
 				AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */,
 				AB6B5EAF2D95D35E00E1BE37 /* RecordAudioManager.swift in Sources */,
 			);

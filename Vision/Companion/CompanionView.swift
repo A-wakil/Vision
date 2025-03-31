@@ -27,6 +27,9 @@ struct CompanionView: View {
     @State private var isConnected: Bool = false
     @State private var isConnecting: Bool = false
     
+    // Add cleanup on disappear
+    @Environment(\.scenePhase) private var scenePhase
+    
     var body: some View {
         ZStack {
             // Background gradient
@@ -37,198 +40,201 @@ struct CompanionView: View {
             )
             .ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Header
-                Text("AI Companion")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.top, 20)
-                
-                // Connection status
-                if !isConnected {
-                    Button(action: {
-                        if !isConnecting {
-                            connectToOpenAI()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: isConnecting ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
-                            Text(isConnecting ? "Connecting..." : "Connect to OpenAI")
-                        }
+            // Main content (wrap in a GeometryReader to help with memory management)
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Header
+                    Text("AI Companion")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(
-                            Capsule()
-                                .fill(isConnecting ? Color.orange.opacity(0.7) : Color.blue.opacity(0.7))
-                        )
-                        .padding(.top, 10)
-                    }
-                    .disabled(isConnecting)
-                } else {
-                    Button(action: {
-                        disconnectFromOpenAI()
-                    }) {
-                        HStack {
-                            Image(systemName: "antenna.radiowaves.left.and.right")
-                            Text("Disconnect")
-                        }
-                        .foregroundColor(.white)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(
-                            Capsule()
-                                .fill(Color.green.opacity(0.7))
-                        )
-                        .padding(.top, 10)
-                    }
-                }
-                
-                Spacer()
-                
-                // Text displays
-                VStack(spacing: 15) {
-                    if !userText.isEmpty {
-                        Text("You: \(userText)")
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.blue.opacity(0.3))
-                            )
-                            .padding(.horizontal)
-                    }
+                        .padding(.top, 20)
                     
-                    if !aiText.isEmpty {
-                        Text("AI: \(aiText)")
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.purple.opacity(0.3))
-                            )
-                            .padding(.horizontal)
-                    }
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 20)
-                
-                // Status display
-                Text(conversationState.description)
-                    .foregroundColor(.white)
-                    .font(.headline)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .background(
-                        Capsule()
-                            .fill(conversationState.color.opacity(0.7))
-                    )
-                    .padding(.bottom, 20)
-                
-                // Audio visualization
-                if conversationState == .userSpeaking || conversationState == .aiSpeaking {
-                    AudioVisualizerViewRepresentable(rmsValue: currentRmsValue)
-                        .frame(height: 60)
-                        .padding(.bottom, 10)
-                }
-                
-                // Conversation visualization
-                HStack(spacing: 40) {
-                    // User visualization
-                    VStack {
-                        ZStack {
-                            // Pulse animation for user
-                            Circle()
-                                .fill(Color.blue.opacity(0.3))
-                                .frame(width: 80, height: 80)
-                                .scaleEffect(userPulseScale)
-                                .animation(
-                                    conversationState == .userSpeaking ?
-                                        Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) :
-                                        Animation.easeInOut(duration: 0.3),
-                                    value: userPulseScale
-                                )
-                            
-                            // User icon
-                            Circle()
-                                .fill(Color.blue)
-                                .frame(width: 60, height: 60)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 30))
-                                        .foregroundColor(.white)
-                                )
-                        }
-                        
-                        Text("You")
+                    // Connection status
+                    if !isConnected {
+                        Button(action: {
+                            if !isConnecting {
+                                connectToOpenAI()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: isConnecting ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
+                                Text(isConnecting ? "Connecting..." : "Connect to OpenAI")
+                            }
                             .foregroundColor(.white)
-                            .padding(.top, 5)
-                    }
-                    
-                    // Status indicator
-                    if conversationState == .aiThinking {
-                        TypingIndicator()
-                            .frame(width: 50, height: 30)
-                    }
-                    
-                    // AI visualization
-                    VStack {
-                        ZStack {
-                            // Pulse animation for AI
-                            Circle()
-                                .fill(Color.purple.opacity(0.3))
-                                .frame(width: 80, height: 80)
-                                .scaleEffect(aiPulseScale)
-                                .animation(
-                                    conversationState == .aiSpeaking ?
-                                        Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) :
-                                        Animation.easeInOut(duration: 0.3),
-                                    value: aiPulseScale
-                                )
-                            
-                            // AI icon
-                            Circle()
-                                .fill(Color.purple)
-                                .frame(width: 60, height: 60)
-                                .overlay(
-                                    Image(systemName: "brain")
-                                        .font(.system(size: 30))
-                                        .foregroundColor(.white)
-                                )
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(
+                                Capsule()
+                                    .fill(isConnecting ? Color.orange.opacity(0.7) : Color.blue.opacity(0.7))
+                            )
+                            .padding(.top, 10)
                         }
-                        
-                        Text("AI")
-                            .foregroundColor(.white)
-                            .padding(.top, 5)
-                    }
-                }
-                .padding(.bottom, 20)
-                
-                // Talk button
-                Button(action: {
-                    // Toggle between user speaking and idle
-                    if conversationState == .userSpeaking {
-                        endUserSpeaking()
+                        .disabled(isConnecting)
                     } else {
-                        startUserSpeaking()
-                    }
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                conversationState == .userSpeaking ?
-                                    Color.red.opacity(0.8) :
-                                    Color.blue.opacity(0.8)
-                            )
-                            .frame(width: 70, height: 70)
-                        
-                        Image(systemName: conversationState == .userSpeaking ? "stop.fill" : "mic.fill")
-                            .font(.system(size: 30))
+                        Button(action: {
+                            disconnectFromOpenAI()
+                        }) {
+                            HStack {
+                                Image(systemName: "antenna.radiowaves.left.and.right")
+                                Text("Disconnect")
+                            }
                             .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(
+                                Capsule()
+                                    .fill(Color.green.opacity(0.7))
+                            )
+                            .padding(.top, 10)
+                        }
                     }
+                    
+                    Spacer()
+                    
+                    // Text displays
+                    VStack(spacing: 15) {
+                        if !userText.isEmpty {
+                            Text("You: \(userText)")
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.blue.opacity(0.3))
+                                )
+                                .padding(.horizontal)
+                        }
+                        
+                        if !aiText.isEmpty {
+                            Text("AI: \(aiText)")
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.purple.opacity(0.3))
+                                )
+                                .padding(.horizontal)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 20)
+                    
+                    // Status display
+                    Text(conversationState.description)
+                        .foregroundColor(.white)
+                        .font(.headline)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(
+                            Capsule()
+                                .fill(conversationState.color.opacity(0.7))
+                        )
+                        .padding(.bottom, 20)
+                    
+                    // Audio visualization
+                    if conversationState == .userSpeaking || conversationState == .aiSpeaking {
+                        AudioVisualizerViewRepresentable(rmsValue: currentRmsValue)
+                            .frame(height: 60)
+                            .padding(.bottom, 10)
+                    }
+                    
+                    // Conversation visualization
+                    HStack(spacing: 40) {
+                        // User visualization
+                        VStack {
+                            ZStack {
+                                // Pulse animation for user
+                                Circle()
+                                    .fill(Color.blue.opacity(0.3))
+                                    .frame(width: 80, height: 80)
+                                    .scaleEffect(userPulseScale)
+                                    .animation(
+                                        conversationState == .userSpeaking ?
+                                            Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) :
+                                            Animation.easeInOut(duration: 0.3),
+                                        value: userPulseScale
+                                    )
+                                
+                                // User icon
+                                Circle()
+                                    .fill(Color.blue)
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                            
+                            Text("You")
+                                .foregroundColor(.white)
+                                .padding(.top, 5)
+                        }
+                        
+                        // Status indicator
+                        if conversationState == .aiThinking {
+                            TypingIndicator()
+                                .frame(width: 50, height: 30)
+                        }
+                        
+                        // AI visualization
+                        VStack {
+                            ZStack {
+                                // Pulse animation for AI
+                                Circle()
+                                    .fill(Color.purple.opacity(0.3))
+                                    .frame(width: 80, height: 80)
+                                    .scaleEffect(aiPulseScale)
+                                    .animation(
+                                        conversationState == .aiSpeaking ?
+                                            Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) :
+                                            Animation.easeInOut(duration: 0.3),
+                                        value: aiPulseScale
+                                    )
+                                
+                                // AI icon
+                                Circle()
+                                    .fill(Color.purple)
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Image(systemName: "brain")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                            
+                            Text("AI")
+                                .foregroundColor(.white)
+                                .padding(.top, 5)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                    
+                    // Talk button
+                    Button(action: {
+                        // Toggle between user speaking and idle
+                        if conversationState == .userSpeaking {
+                            endUserSpeaking()
+                        } else {
+                            startUserSpeaking()
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    conversationState == .userSpeaking ?
+                                        Color.red.opacity(0.8) :
+                                        Color.blue.opacity(0.8)
+                                )
+                                .frame(width: 70, height: 70)
+                            
+                            Image(systemName: conversationState == .userSpeaking ? "stop.fill" : "mic.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .disabled(conversationState == .aiSpeaking || conversationState == .aiThinking || !isConnected)
+                    .padding(.bottom, 30)
                 }
-                .disabled(conversationState == .aiSpeaking || conversationState == .aiThinking || !isConnected)
-                .padding(.bottom, 30)
             }
         }
         .onAppear {
@@ -238,6 +244,18 @@ struct CompanionView: View {
             
             // Setup notification observers
             setupNotificationObservers()
+        }
+        .onDisappear {
+            // Clean up resources when view disappears
+            disconnectFromOpenAI()
+            removeNotificationObservers()
+        }
+        // Monitor app state changes
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .background {
+                // App is going to background, clean up resources
+                disconnectFromOpenAI()
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -251,7 +269,7 @@ struct CompanionView: View {
     
     private func disconnectFromOpenAI() {
         // Stop any ongoing audio
-        PlayAudioContinuouslyManager.shared.audio_event_Queue.removeAll()
+        PlayAudioContinuouslyManager.shared.stopAudio()
         WebSocketManager.shared.audio_String = ""
         WebSocketManager.shared.audio_String_count = 0
         
@@ -348,6 +366,11 @@ struct CompanionView: View {
                 }
             }
         }
+    }
+    
+    // Add a clean up method to remove notification observers
+    private func removeNotificationObservers() {
+        NotificationCenter.default.removeObserver(self)
     }
     
     private func handleConnectionStatusChange() {

@@ -276,8 +276,10 @@ struct CompanionView: View {
         // Stop audio recording
         RecordAudioManager.shared.pauseCaptureAudio()
         
-        // Disconnect WebSocket
-        WebSocketManager.shared.socket.disconnect()
+        // Disconnect WebSocket - This might be causing the crash
+        if WebSocketManager.shared.socket != nil {  // Add nil check
+            WebSocketManager.shared.socket.disconnect()
+        }
         
         // Update UI state
         isConnected = false

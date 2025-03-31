@@ -278,6 +278,22 @@ struct ContentView: View {
                             .padding(8)
                             .background(Circle().fill(Color.black.opacity(0.6)))
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        // Stop audio if playing
+                        if isAudioPlaying {
+                            if audioEngine != nil {
+                                // Stop streaming audio
+                                stopAudioEngine()
+                            } else if let player = audioPlayer {
+                                // Stop replay audio
+                                player.stop()
+                                audioPlayer = nil
+                                isAudioPlaying = false
+                                isSpeaking = false
+                            }
+                            print("Audio manually stopped by user")
+                        }
+                    })
                 }
             }
             .sheet(isPresented: $showLanguageSelector) {

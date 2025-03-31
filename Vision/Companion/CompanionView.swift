@@ -238,17 +238,60 @@ struct CompanionView: View {
             }
         }
         .onAppear {
+            print("CompanionView: onAppear called")
+            
             // Set initial animation states
             userPulseScale = 1.0
             aiPulseScale = 1.0
             
+            // Reset state variables
+            isConnected = false
+            isConnecting = false
+            conversationState = .idle
+            userText = ""
+            aiText = ""
+            currentRmsValue = 0.0
+            
+            // Clean up any existing audio systems first
+            PlayAudioContinuouslyManager.shared.cleanup()
+            RecordAudioManager.shared.pauseCaptureAudio()
+            
+            // Forcefully reset audio session 
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                print("CompanionView: onAppear - Audio session reset")
+            } catch {
+                print("CompanionView: onAppear - Error resetting audio session: \(error)")
+            }
+            
             // Setup notification observers
             setupNotificationObservers()
+            
+            // Start a new connection with a slight delay to ensure proper setup
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                connectToOpenAI()
+            }
         }
         .onDisappear {
+            print("CompanionView: onDisappear called")
+            
             // Clean up resources when view disappears
             disconnectFromOpenAI()
+            
+            // Clean up audio systems
+            PlayAudioContinuouslyManager.shared.cleanup()
+            RecordAudioManager.shared.pauseCaptureAudio()
+            
+            // Remove notification observers
             removeNotificationObservers()
+            
+            // Ensure audio session is deactivated
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                print("CompanionView: onDisappear - Audio session deactivated")
+            } catch {
+                print("CompanionView: onDisappear - Error deactivating audio session: \(error)")
+            }
         }
         // Monitor app state changes
         .onChange(of: scenePhase) { newPhase in
@@ -264,10 +307,27 @@ struct CompanionView: View {
     
     private func connectToOpenAI() {
         isConnecting = true
+        
+        // Set up audio session properly before connecting
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try audioSession.setActive(true)
+            print("CompanionView: Audio session activated successfully")
+        } catch {
+            print("CompanionView: Failed to set up audio session: \(error)")
+        }
+        
+        // Reinitialize the audio playback system
+        PlayAudioContinuouslyManager.shared.initParam()
+        
+        // Connect to WebSocket
         WebSocketManager.shared.connectWebSocketOfOpenAi()
     }
     
     private func disconnectFromOpenAI() {
+        print("CompanionView: Disconnecting from OpenAI")
+        
         // Stop any ongoing audio
         PlayAudioContinuouslyManager.shared.stopAudio()
         WebSocketManager.shared.audio_String = ""
@@ -276,19 +336,29 @@ struct CompanionView: View {
         // Stop audio recording
         RecordAudioManager.shared.pauseCaptureAudio()
         
-        // Disconnect WebSocket - This might be causing the crash
-        if WebSocketManager.shared.socket != nil {  // Add nil check
+        // Disconnect WebSocket
+        if WebSocketManager.shared.socket != nil {
             WebSocketManager.shared.socket.disconnect()
         }
         
         // Update UI state
         isConnected = false
         conversationState = .idle
+        
+        // Deactivate audio session
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            print("CompanionView: Audio session deactivated successfully")
+        } catch {
+            print("CompanionView: Failed to deactivate audio session: \(error)")
+        }
     }
     
     // MARK: - Notification Handlers
     
     private func setupNotificationObservers() {
+        print("CompanionView: Setting up notification observers")
+        
         NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "WebSocketManager_connected_status_changed"), object: nil, queue: .main) { notification in
             self.handleConnectionStatusChange()
         }
@@ -337,6 +407,21 @@ struct CompanionView: View {
         
         // Add observer for when AI finishes playing audio
         NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "AudioPlaybackFinished"), object: nil, queue: .main) { _ in
+            print("CompanionView: Received AudioPlaybackFinished notification")
+            
+            withAnimation {
+                self.conversationState = .idle
+                self.aiPulseScale = 1.0
+            }
+            
+            // Note: RecordAudioManager is already restarted in PlayAudioContinuouslyManager
+            // Don't duplicate the call here to avoid conflicts
+        }
+        
+        // Add observer for audio playback stopped
+        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "AudioPlaybackStopped"), object: nil, queue: .main) { _ in
+            print("CompanionView: Received AudioPlaybackStopped notification")
+            
             withAnimation {
                 self.conversationState = .idle
                 self.aiPulseScale = 1.0
@@ -346,6 +431,8 @@ struct CompanionView: View {
         // Add observer for conversation state changes
         NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "ConversationStateChanged"), object: nil, queue: .main) { notification in
             if let dict = notification.object as? [String: String], let state = dict["state"] {
+                print("CompanionView: Received ConversationStateChanged: \(state)")
+                
                 withAnimation {
                     switch state {
                     case "userSpeaking":
@@ -372,11 +459,14 @@ struct CompanionView: View {
     
     // Add a clean up method to remove notification observers
     private func removeNotificationObservers() {
+        print("CompanionView: Removing notification observers")
         NotificationCenter.default.removeObserver(self)
     }
     
     private func handleConnectionStatusChange() {
         let status = WebSocketManager.shared.connected_status
+        print("CompanionView: Connection status changed to: \(status)")
+        
         if status == "not_connected" {
             isConnected = false
             isConnecting = false
@@ -394,21 +484,32 @@ struct CompanionView: View {
     
     private func startUserSpeaking() {
         if !isConnected {
+            print("CompanionView: Cannot start speaking - not connected")
             return
         }
+        
+        print("CompanionView: Starting user speaking")
         
         withAnimation {
             conversationState = .userSpeaking
             userPulseScale = 1.3
             aiPulseScale = 1.0
         }
+        
+        // Start audio recording
+        RecordAudioManager.shared.startRecordAudio()
     }
     
     private func endUserSpeaking() {
+        print("CompanionView: Ending user speaking")
+        
         withAnimation {
             conversationState = .aiThinking
             userPulseScale = 1.0
         }
+        
+        // No need to explicitly pause capture audio here
+        // It will be handled by the WebSocketManager when it receives the first audio chunk
     }
 }
 

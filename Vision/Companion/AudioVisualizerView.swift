@@ -100,6 +100,6 @@ struct AudioVisualizerViewRepresentable: UIViewRepresentable {
     }
 }
 
-#Preview {
-    AudioVisualizerView()
-}
+//#Preview {
+//    AudioVisualizerView()
+//}

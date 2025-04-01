@@ -17,6 +17,12 @@ class PlayAudioContinuouslyManager: NSObject {
     }
     
     func initParam() {
+        print("PlayAudioContinuouslyManager: Initializing audio playback system")
+        
+        // Clean up existing resources first
+        cleanup()
+        
+        // Create new engine and nodes
         audioEngine = AVAudioEngine()
         playerNode = AVAudioPlayerNode()
         
@@ -31,11 +37,17 @@ class PlayAudioContinuouslyManager: NSObject {
         audioEngine.connect(playerNode, to: timePitchNode, format: audioFormat)
         audioEngine.connect(timePitchNode, to: audioEngine.mainMixerNode, format: audioFormat)
         
+        // Reset state
+        isPauseAudio = false
+        isCurrentlyPlaying = false
+        audio_event_Queue.removeAll()
+        
         do {
             try audioEngine.start()
             playerNode.play()
+            print("PlayAudioContinuouslyManager: Audio engine started successfully")
         } catch {
-            print("Failed to start audio engine: \(error)")
+            print("PlayAudioContinuouslyManager: Failed to start audio engine: \(error)")
         }
     }
     
@@ -200,18 +212,36 @@ class PlayAudioContinuouslyManager: NSObject {
     
     // Improved cleanup method to release all resources
     func cleanup() {
+        print("PlayAudioContinuouslyManager: Cleaning up resources")
+        
+        // Stop timer
         audioMonitorTimer?.invalidate()
         audioMonitorTimer = nil
         
-        // Stop audio engine and player
-        playerNode.stop()
-        audioEngine.stop()
+        // Reset state variables
+        isPauseAudio = false
+        isCurrentlyPlaying = false
         
         // Clear the audio queue
         audio_event_Queue.removeAll()
         
-        // Reset states
-        isPauseAudio = false
-        isCurrentlyPlaying = false
+        // Check if engine and node exist before stopping
+        if let playerNode = playerNode {
+            playerNode.stop()
+        }
+        
+        if let engine = audioEngine {
+            engine.stop()
+            
+            // Remove all attached nodes
+            if let playerNode = playerNode {
+                engine.detach(playerNode)
+            }
+            
+            // Ensure engine is reset
+            engine.reset()
+        }
+        
+        print("PlayAudioContinuouslyManager: Cleanup completed")
     }
 }

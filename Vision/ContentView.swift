@@ -13,6 +13,7 @@ import Accelerate
 struct ContentView: View {
     @StateObject private var frameHandler = FrameHandler()
     private let openAIService = OpenAIService.shared
+    @StateObject private var contextManager = SharedContextManager.shared
     @State private var isSpeaking = false
     @State private var isProcessingFrame = false
     @State private var showingError = false
@@ -49,6 +50,9 @@ struct ContentView: View {
         "ja": "Japanese", "ko": "Korean", "zh": "Chinese",
         "ar": "Arabic", "hi": "Hindi", "tr": "Turkish"
     ]
+    
+    // Add a state to track the latest description
+    @State private var latestDescription: String = ""
     
     var body: some View {
         NavigationView {
@@ -184,46 +188,9 @@ struct ContentView: View {
                             let startTime = Date()
                             print("⏱️ [0ms] Starting image processing")
                             
-                            if let frame = frameHandler.frame {
-                                let ciImage = CIImage(cgImage: frame)
-                                let context = CIContext()
-                                if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
-                                    Task {
-                                        do {
-                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Image converted to JPEG, sending to OpenAI")
-                                            
-                                            let description = try await openAIService.describeImage(imageData, language: currentLanguage)
-                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Got description (\(description.count) chars), starting TTS streaming")
-                                            
-                                            // Setup audio engine
-                                            await setupAudioEngine()
-                                            
-                                            // Start streaming
-                                            openAIService.textToSpeechStreaming(
-                                                text: description,
-                                                model: "gpt-4o-mini-tts",
-                                                voice: "nova",
-                                                responseFormat: "pcm",
-                                                onChunk: { pcmChunk in
-                                                    Task {
-                                                        await processAudioChunk(pcmChunk, startTime: startTime)
-                                                    }
-                                                },
-                                                onComplete: { error in
-                                                    Task {
-                                                        await handleStreamingComplete(error, startTime: startTime)
-                                                    }
-                                                }
-                                            )
-                                        } catch {
-                                            print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
-                                            showingError = true
-                                            errorMessage = error.localizedDescription
-                                            isProcessingFrame = false
-                                            isSpeaking = false
-                                        }
-                                    }
-                                }
+                            // Process the current frame asynchronously
+                            Task {
+                                await processCurrentFrame(startTime: startTime)
                             }
                         }) {
                             Circle()
@@ -278,6 +245,22 @@ struct ContentView: View {
                             .padding(8)
                             .background(Circle().fill(Color.black.opacity(0.6)))
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        // Stop audio if playing
+                        if isAudioPlaying {
+                            if audioEngine != nil {
+                                // Stop streaming audio
+                                stopAudioEngine()
+                            } else if let player = audioPlayer {
+                                // Stop replay audio
+                                player.stop()
+                                audioPlayer = nil
+                                isAudioPlaying = false
+                                isSpeaking = false
+                            }
+                            print("Audio manually stopped by user")
+                        }
+                    })
                 }
             }
             .sheet(isPresented: $showLanguageSelector) {
@@ -464,6 +447,60 @@ struct ContentView: View {
         isSpeaking = false
         isAudioPlaying = false
         print("Audio engine stopped")
+    }
+    
+    // Update the describeImage call in the Button action to use the context manager
+    func processCurrentFrame(startTime: Date) async {
+        if let frame = frameHandler.frame {
+            let ciImage = CIImage(cgImage: frame)
+            let context = CIContext()
+            if let imageData = context.jpegRepresentation(of: ciImage, colorSpace: CGColorSpaceCreateDeviceRGB()) {
+                do {
+                    print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Image converted to JPEG, sending to OpenAI")
+                    
+                    // Get the current context from the context manager
+                    let pastContext = contextManager.getCurrentContextForAPI()
+                    
+                    // Call OpenAI with the context
+                    let description = try await openAIService.describeImage(imageData, pastContext: pastContext, language: currentLanguage)
+                    
+                    // Store the description in the context manager
+                    contextManager.addDescription(description)
+                    
+                    // Update latest description
+                    latestDescription = description
+                    
+                    print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Got description (\(description.count) chars), starting TTS streaming")
+                    
+                    // Setup audio engine
+                    await setupAudioEngine()
+                    
+                    // Start streaming
+                    openAIService.textToSpeechStreaming(
+                        text: description,
+                        model: "gpt-4o-mini-tts",
+                        voice: "nova",
+                        responseFormat: "pcm",
+                        onChunk: { pcmChunk in
+                            Task {
+                                await processAudioChunk(pcmChunk, startTime: startTime)
+                            }
+                        },
+                        onComplete: { error in
+                            Task {
+                                await handleStreamingComplete(error, startTime: startTime)
+                            }
+                        }
+                    )
+                } catch {
+                    print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
+                    showingError = true
+                    errorMessage = error.localizedDescription
+                    isProcessingFrame = false
+                    isSpeaking = false
+                }
+            }
+        }
     }
 }
 

@@ -9,6 +9,9 @@ import SwiftUI
 import AVFoundation
 
 struct CompanionView: View {
+    // Add access to the shared context manager
+    @ObservedObject private var contextManager = SharedContextManager.shared
+    
     // State variables to track conversation status
     @State private var conversationState: ConversationState = .idle
     
@@ -49,6 +52,7 @@ struct CompanionView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                         .padding(.top, 20)
+                        .padding(.leading, 20)
                     
                     // Connection status
                     if !isConnected {

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 90;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -74,25 +74,19 @@
 /* Begin PBXFrameworksBuildPhase section */
 		AB3150E42D81ED4E00E08445 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				AB6B5EAB2D95D32C00E1BE37 /* Starscream in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150F42D81ED5100E08445 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150FE2D81ED5100E08445 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -186,8 +180,6 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			name = Vision;
 			packageProductDependencies = (
 				AB6B5EAA2D95D32C00E1BE37 /* Starscream */,
@@ -240,7 +232,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1510;
-				LastUpgradeCheck = 1510;
+				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					AB3150E62D81ED4E00E08445 = {
 						CreatedOnToolsVersion = 15.1;
@@ -255,8 +247,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AB3150E22D81ED4E00E08445 /* Build configuration list for PBXProject "Vision" */;
-			compatibilityVersion = "Xcode 14.0";
+			buildConfigurationList = AB3150E22D81ED4E00E08445 /* Build configuration list for PBXProject "V-Eyes" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -267,6 +258,7 @@
 			packageReferences = (
 				AB6B5EA92D95D32C00E1BE37 /* XCRemoteSwiftPackageReference "Starscream" */,
 			);
+			preferredProjectObjectVersion = 90;
 			productRefGroup = AB3150E82D81ED4E00E08445 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -281,33 +273,26 @@
 /* Begin PBXResourcesBuildPhase section */
 		AB3150E52D81ED4E00E08445 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				AB3150F22D81ED5000E08445 /* Preview Assets.xcassets in Resources */,
 				AB3150EF2D81ED5000E08445 /* Assets.xcassets in Resources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150F52D81ED5100E08445 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150FF2D81ED5100E08445 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AB3150E32D81ED4E00E08445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				ABF777A92D9B40C700C279DA /* SharedState.swift in Sources */,
 				AB31511F2D81EF4E00E08445 /* OpenAIService.swift in Sources */,
@@ -324,24 +309,19 @@
 				AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */,
 				AB6B5EAF2D95D35E00E1BE37 /* RecordAudioManager.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150F32D81ED5100E08445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				AB3150FC2D81ED5100E08445 /* VisionTests.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB3150FD2D81ED5100E08445 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				AB3151082D81ED5100E08445 /* VisionUITestsLaunchTests.swift in Sources */,
 				AB3151062D81ED5100E08445 /* VisionUITests.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -359,7 +339,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		AB3151092D81ED5100E08445 /* Debug */ = {
+		AB3151092D81ED5100E08445 /* Debug configuration for PBXProject "V-Eyes" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -394,6 +374,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -422,7 +403,7 @@
 			};
 			name = Debug;
 		};
-		AB31510A2D81ED5100E08445 /* Release */ = {
+		AB31510A2D81ED5100E08445 /* Release configuration for PBXProject "V-Eyes" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -457,6 +438,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -478,7 +460,7 @@
 			};
 			name = Release;
 		};
-		AB31510C2D81ED5100E08445 /* Debug */ = {
+		AB31510C2D81ED5100E08445 /* Debug configuration for PBXNativeTarget "Vision" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -486,11 +468,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Vision/Preview Content\"";
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Microphone for AI Companion";
+				INFOPLIST_KEY_CFBundleDisplayName = "V-Eyes";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take pictures that are analyzed by an AI using OpenAI's API to generate descriptions or provide feedback.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone for real-time voice conversations with an AI companion, powered by OpenAI's API.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -501,7 +483,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = htu.Vision;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -510,7 +492,7 @@
 			};
 			name = Debug;
 		};
-		AB31510D2D81ED5100E08445 /* Release */ = {
+		AB31510D2D81ED5100E08445 /* Release configuration for PBXNativeTarget "Vision" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -518,11 +500,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Vision/Preview Content\"";
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Allow Camera for Vision";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow Microphone for AI Companion";
+				INFOPLIST_KEY_CFBundleDisplayName = "V-Eyes";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take pictures that are analyzed by an AI using OpenAI's API to generate descriptions or provide feedback.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone for real-time voice conversations with an AI companion, powered by OpenAI's API.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -533,7 +515,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = htu.Vision;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -542,14 +524,12 @@
 			};
 			name = Release;
 		};
-		AB31510F2D81ED5100E08445 /* Debug */ = {
+		AB31510F2D81ED5100E08445 /* Debug configuration for PBXNativeTarget "VisionTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				MARKETING_VERSION = 1.0;
@@ -562,14 +542,12 @@
 			};
 			name = Debug;
 		};
-		AB3151102D81ED5100E08445 /* Release */ = {
+		AB3151102D81ED5100E08445 /* Release configuration for PBXNativeTarget "VisionTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				MARKETING_VERSION = 1.0;
@@ -582,13 +560,11 @@
 			};
 			name = Release;
 		};
-		AB3151122D81ED5100E08445 /* Debug */ = {
+		AB3151122D81ED5100E08445 /* Debug configuration for PBXNativeTarget "VisionUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = htu.VisionUITests;
@@ -600,13 +576,11 @@
 			};
 			name = Debug;
 		};
-		AB3151132D81ED5100E08445 /* Release */ = {
+		AB3151132D81ED5100E08445 /* Release configuration for PBXNativeTarget "VisionUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3C4T9ZXP3R;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = htu.VisionUITests;
@@ -621,40 +595,36 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AB3150E22D81ED4E00E08445 /* Build configuration list for PBXProject "Vision" */ = {
+		AB3150E22D81ED4E00E08445 /* Build configuration list for PBXProject "V-Eyes" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB3151092D81ED5100E08445 /* Debug */,
-				AB31510A2D81ED5100E08445 /* Release */,
+				AB3151092D81ED5100E08445 /* Debug configuration for PBXProject "V-Eyes" */,
+				AB31510A2D81ED5100E08445 /* Release configuration for PBXProject "V-Eyes" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		AB31510B2D81ED5100E08445 /* Build configuration list for PBXNativeTarget "Vision" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB31510C2D81ED5100E08445 /* Debug */,
-				AB31510D2D81ED5100E08445 /* Release */,
+				AB31510C2D81ED5100E08445 /* Debug configuration for PBXNativeTarget "Vision" */,
+				AB31510D2D81ED5100E08445 /* Release configuration for PBXNativeTarget "Vision" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		AB31510E2D81ED5100E08445 /* Build configuration list for PBXNativeTarget "VisionTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB31510F2D81ED5100E08445 /* Debug */,
-				AB3151102D81ED5100E08445 /* Release */,
+				AB31510F2D81ED5100E08445 /* Debug configuration for PBXNativeTarget "VisionTests" */,
+				AB3151102D81ED5100E08445 /* Release configuration for PBXNativeTarget "VisionTests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		AB3151112D81ED5100E08445 /* Build configuration list for PBXNativeTarget "VisionUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB3151122D81ED5100E08445 /* Debug */,
-				AB3151132D81ED5100E08445 /* Release */,
+				AB3151122D81ED5100E08445 /* Debug configuration for PBXNativeTarget "VisionUITests" */,
+				AB3151132D81ED5100E08445 /* Release configuration for PBXNativeTarget "VisionUITests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */

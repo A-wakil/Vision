@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import UIKit
 
 struct CompanionView: View {
     // Add access to the shared context manager
@@ -244,6 +245,9 @@ struct CompanionView: View {
         .onAppear {
             print("CompanionView: onAppear called")
             
+            // Prevent screen timeout while companion view is active
+            UIApplication.shared.isIdleTimerDisabled = true
+            
             // Set initial animation states
             userPulseScale = 1.0
             aiPulseScale = 1.0
@@ -279,6 +283,9 @@ struct CompanionView: View {
         .onDisappear {
             print("CompanionView: onDisappear called")
             
+            // Allow screen timeout when leaving companion view
+            UIApplication.shared.isIdleTimerDisabled = false
+            
             // Clean up resources when view disappears
             disconnectFromOpenAI()
             
@@ -298,7 +305,7 @@ struct CompanionView: View {
             }
         }
         // Monitor app state changes
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .background {
                 // App is going to background, clean up resources
                 disconnectFromOpenAI()

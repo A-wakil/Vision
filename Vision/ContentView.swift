@@ -9,6 +9,7 @@ import SwiftUI
 import AVFoundation
 import CoreImage
 import Accelerate
+import UIKit
 
 struct ContentView: View {
     @StateObject private var frameHandler = FrameHandler()
@@ -54,6 +55,12 @@ struct ContentView: View {
     // Add a state to track the latest description
     @State private var latestDescription: String = ""
     
+    // Observer to manage screen timeout based on audio playback
+    private func updateIdleTimer() {
+        // Prevent screen timeout when audio is playing
+        UIApplication.shared.isIdleTimerDisabled = isAudioPlaying
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -94,6 +101,7 @@ struct ContentView: View {
                                     player.stop()
                                     audioPlayer = nil
                                     isAudioPlaying = false
+                                    updateIdleTimer()
                                     isSpeaking = false
                                 }
                                 print("Audio manually stopped by user")
@@ -118,13 +126,16 @@ struct ContentView: View {
                                         onPlay: { 
                                             self.isSpeaking = true 
                                             self.isAudioPlaying = true
+                                            updateIdleTimer()
                                             print("Replay started")
                                         },
                                         onStop: { 
                                             self.isSpeaking = false 
                                             self.isAudioPlaying = false
+                                            updateIdleTimer()
                                             print("Replay stopped")
-                                        }
+                                        },
+                                        updateIdleTimer: updateIdleTimer
                                     )
                                     
                                     // Assign the delegate before setting the player
@@ -138,6 +149,7 @@ struct ContentView: View {
                                     player.prepareToPlay()
                                     if player.play() {
                                         isAudioPlaying = true
+                                        updateIdleTimer()
                                         isSpeaking = true
                                         print("Audio replay started")
                                     } else {
@@ -176,6 +188,7 @@ struct ContentView: View {
                                     player.stop()
                                     audioPlayer = nil
                                     isAudioPlaying = false
+                                    updateIdleTimer()
                                     isSpeaking = false
                                 }
                             }
@@ -256,6 +269,7 @@ struct ContentView: View {
                                 player.stop()
                                 audioPlayer = nil
                                 isAudioPlaying = false
+                                updateIdleTimer()
                                 isSpeaking = false
                             }
                             print("Audio manually stopped by user")
@@ -417,6 +431,7 @@ struct ContentView: View {
                             DispatchQueue.main.async {
                                 self.isSpeaking = false
                                 self.isAudioPlaying = false
+                                updateIdleTimer()
                                 
                                 // Make sure to completely clean up the audio engine
                                 // This ensures proper state for replay functionality
@@ -623,22 +638,26 @@ extension FixedWidthInteger {
 class AudioPlayerDelegate: NSObject, AVAudioPlayerDelegate {
     private let onPlay: () -> Void
     private let onStop: () -> Void
+    private let updateIdleTimer: () -> Void
     
-    init(onPlay: @escaping () -> Void, onStop: @escaping () -> Void) {
+    init(onPlay: @escaping () -> Void, onStop: @escaping () -> Void, updateIdleTimer: @escaping () -> Void) {
         self.onPlay = onPlay
         self.onStop = onStop
+        self.updateIdleTimer = updateIdleTimer
         super.init()
     }
     
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         DispatchQueue.main.async {
             self.onStop()
+            self.updateIdleTimer()
         }
     }
     
     func audioPlayerBeginInterruption(_ player: AVAudioPlayer) {
         DispatchQueue.main.async {
             self.onStop()
+            self.updateIdleTimer()
         }
     }
     
@@ -646,6 +665,7 @@ class AudioPlayerDelegate: NSObject, AVAudioPlayerDelegate {
         if player.play() {
             DispatchQueue.main.async {
                 self.onPlay()
+                self.updateIdleTimer()
             }
         }
     }

@@ -69,13 +69,24 @@ class RecordAudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
         }
         
         // Check microphone permission
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
-            if !granted {
-                print("The user denied microphone permission.")
-            } else {
-                print("Microphone permission granted.")
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { granted in
+                if !granted {
+                    print("The user denied microphone permission.")
+                } else {
+                    print("Microphone permission granted.")
+                }
+            }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                if !granted {
+                    print("The user denied microphone permission.")
+                } else {
+                    print("Microphone permission granted.")
+                }
             }
         }
+
         
         // Set up audio session on background thread
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -298,7 +309,7 @@ class RecordAudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
         self.local_record_Array.removeFirst(endIndex)
         
         // Process each message in the batch
-        for (index, eventInfo) in batch.enumerated() {
+        for (_, eventInfo) in batch.enumerated() {
             if let sequenceNumber = eventInfo["sequenceNumber"] as? Int,
                let audio = eventInfo["audio"] as? String,
                let type = eventInfo["type"] as? String {

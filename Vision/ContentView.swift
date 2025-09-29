@@ -10,6 +10,7 @@ import AVFoundation
 import CoreImage
 import Accelerate
 import UIKit
+import PostHog
 
 struct ContentView: View {
     @StateObject private var frameHandler = FrameHandler()
@@ -61,6 +62,38 @@ struct ContentView: View {
         UIApplication.shared.isIdleTimerDisabled = isAudioPlaying
     }
     
+    // Track vision analysis
+    private func trackVisionAnalysis(success: Bool, processingTime: TimeInterval) {
+        let properties: [String: Any] = [
+            "success": success,
+            "language": currentLanguage,
+            "processing_time": processingTime
+        ]
+        PostHogSDK.shared.capture("vision_analysis", properties: properties)
+        print("📊 Tracked vision_analysis event: \(properties)")
+    }
+    
+    // Track audio playback events
+    private func trackAudioPlayback(action: String, duration: TimeInterval? = nil) {
+        var properties: [String: Any] = ["action": action]
+        if let duration = duration {
+            properties["duration"] = duration
+        }
+        PostHogSDK.shared.capture("audio_interaction", properties: properties)
+        print("📊 Tracked audio_interaction event: \(properties)")
+    }
+    
+    private func handleError(_ error: Error, type: String = "general") {
+        errorMessage = error.localizedDescription
+        showingError = true
+        let properties: [String: Any] = [
+            "error_type": type,
+            "error_message": error.localizedDescription
+        ]
+        PostHogSDK.shared.capture("error_occurred", properties: properties)
+        print("📊 Tracked error_occurred event: \(properties)")
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -96,13 +129,16 @@ struct ContentView: View {
                                 if audioEngine != nil {
                                     // Stop streaming audio
                                     stopAudioEngine()
+                                    trackAudioPlayback(action: "stop_streaming")
                                 } else if let player = audioPlayer {
                                     // Stop replay audio
+                                    let duration = player.duration
                                     player.stop()
                                     audioPlayer = nil
                                     isAudioPlaying = false
                                     updateIdleTimer()
                                     isSpeaking = false
+                                    trackAudioPlayback(action: "stop_replay", duration: duration)
                                 }
                                 print("Audio manually stopped by user")
                             } else if let audioData = completeAudioData {
@@ -151,6 +187,7 @@ struct ContentView: View {
                                         isAudioPlaying = true
                                         updateIdleTimer()
                                         isSpeaking = true
+                                        trackAudioPlayback(action: "start_replay")
                                         print("Audio replay started")
                                     } else {
                                         print("Failed to start audio replay")
@@ -183,13 +220,16 @@ struct ContentView: View {
                                 if audioEngine != nil {
                                     // Stop streaming audio
                                     stopAudioEngine()
+                                    trackAudioPlayback(action: "stop_streaming")
                                 } else if let player = audioPlayer {
                                     // Stop replay audio
+                                    let duration = player.duration
                                     player.stop()
                                     audioPlayer = nil
                                     isAudioPlaying = false
                                     updateIdleTimer()
                                     isSpeaking = false
+                                    trackAudioPlayback(action: "stop_replay", duration: duration)
                                 }
                             }
                             
@@ -264,13 +304,16 @@ struct ContentView: View {
                             if audioEngine != nil {
                                 // Stop streaming audio
                                 stopAudioEngine()
+                                trackAudioPlayback(action: "stop_streaming")
                             } else if let player = audioPlayer {
                                 // Stop replay audio
+                                let duration = player.duration
                                 player.stop()
                                 audioPlayer = nil
                                 isAudioPlaying = false
                                 updateIdleTimer()
                                 isSpeaking = false
+                                trackAudioPlayback(action: "stop_replay", duration: duration)
                             }
                             print("Audio manually stopped by user")
                         }
@@ -299,6 +342,20 @@ struct ContentView: View {
                         showLanguageSelector = false
                     })
                 }
+            }
+            .onChange(of: currentLanguage) { oldValue, newValue in
+                let changeProperties: [String: String] = [
+                    "from": oldValue,
+                    "to": newValue
+                ]
+                PostHogSDK.shared.capture("language_changed", properties: changeProperties)
+                print("📊 Tracked language_changed event: \(changeProperties)")
+                
+                // Update user properties
+                let distinctId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+                let userProperties = ["preferred_language": newValue]
+                PostHogSDK.shared.identify(distinctId, userProperties: userProperties)
+                print("📊 Updated user properties for \(distinctId): \(userProperties)")
             }
         }
     }
@@ -336,9 +393,12 @@ struct ContentView: View {
                     print("Audio engine started successfully")
                     
                     isAudioPlaying = true
+                    // Track audio streaming start
+                    trackAudioPlayback(action: "streaming_started")
                 }
             } catch {
                 print("Error setting up audio engine: \(error)")
+                handleError(error, type: "audio_setup")
                 isAudioPlaying = false
             }
         }
@@ -456,6 +516,11 @@ struct ContentView: View {
         // Reset audio state
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         
+        // Track audio stop
+        if isAudioPlaying {
+            trackAudioPlayback(action: "stopped")
+        }
+        
         // Clear references
         audioPlayerNode = nil
         audioEngine = nil
@@ -478,6 +543,10 @@ struct ContentView: View {
                     
                     // Call OpenAI with the context
                     let description = try await openAIService.describeImage(imageData, pastContext: pastContext, language: currentLanguage)
+                    
+                    // Track successful vision analysis
+                    let processingTime = -startTime.timeIntervalSinceNow
+                    trackVisionAnalysis(success: true, processingTime: processingTime)
                     
                     // Store the description in the context manager
                     contextManager.addDescription(description)
@@ -504,13 +573,18 @@ struct ContentView: View {
                         onComplete: { error in
                             Task {
                                 await handleStreamingComplete(error, startTime: startTime)
+                                // Track audio completion
+                                if error == nil {
+                                    trackAudioPlayback(action: "completed", duration: -startTime.timeIntervalSinceNow)
+                                }
                             }
                         }
                     )
                 } catch {
                     print("⏱️ [\(Int(-startTime.timeIntervalSinceNow * 1000))ms] Error: \(error)")
-                    showingError = true
-                    errorMessage = error.localizedDescription
+                    // Track failed vision analysis
+                    trackVisionAnalysis(success: false, processingTime: -startTime.timeIntervalSinceNow)
+                    handleError(error, type: "vision_processing")
                     isProcessingFrame = false
                     isSpeaking = false
                 }

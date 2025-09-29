@@ -7,10 +7,29 @@
 
 import SwiftUI
 import UIKit
+import PostHog
 
 // Create an AppDelegate class to handle application lifecycle and screen timeout
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Initialize PostHog
+        let POSTHOG_API_KEY = "phc_PGGW9eK8kCeZG7gv5pfzZCPaNtnJYQKXDVSnQQSXWJl"
+        let POSTHOG_HOST = "https://us.i.posthog.com"
+
+        print("📊 Initializing PostHog with host: \(POSTHOG_HOST)")
+        let config = PostHogConfig(apiKey: POSTHOG_API_KEY, host: POSTHOG_HOST)
+        config.sessionReplay = true
+        config.sessionReplayConfig.maskAllImages = false
+        config.sessionReplayConfig.maskAllTextInputs = true
+        config.sessionReplayConfig.screenshotMode = true
+        
+        PostHogSDK.shared.setup(config)
+        print("📊 PostHog SDK initialized successfully")
+        
+        // Track app launch
+        PostHogSDK.shared.capture("app_launched")
+        print("📊 Tracked app_launched event")
+        
         // Set up notification observers for conversation state changes
         setupNotificationObservers()
         return true

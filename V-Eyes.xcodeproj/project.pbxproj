@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8498E0B12E8B06B4006DF021 /* OpenAIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8498E0B02E8B06AC006DF021 /* OpenAIConfig.swift */; };
+		8498E0B32E8B06D7006DF021 /* OpenAIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8498E0B22E8B06D2006DF021 /* OpenAIConfig.swift */; };
 		AB3150EB2D81ED4E00E08445 /* VisionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3150EA2D81ED4E00E08445 /* VisionApp.swift */; };
 		AB3150ED2D81ED4E00E08445 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3150EC2D81ED4E00E08445 /* ContentView.swift */; };
 		AB3150EF2D81ED5000E08445 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3150EE2D81ED5000E08445 /* Assets.xcassets */; };
@@ -26,7 +28,6 @@
 		AB6B5EB12D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EB02D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift */; };
 		AB6B5EB32D95D38600E1BE37 /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6B5EB22D95D38600E1BE37 /* AudioVisualizerView.swift */; };
 		AB96DB922DBBF02200737989 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = AB96DB912DBBF02200737989 /* PostHog */; };
-		ABF7776F2D989C4100C279DA /* OpenAIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */; };
 		ABF777A92D9B40C700C279DA /* SharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF777A82D9B40C700C279DA /* SharedState.swift */; };
 /* End PBXBuildFile section */
 
@@ -48,6 +49,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8498E0B02E8B06AC006DF021 /* OpenAIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConfig.swift; sourceTree = "<group>"; };
+		8498E0B22E8B06D2006DF021 /* OpenAIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConfig.swift; sourceTree = "<group>"; };
 		AB3150E72D81ED4E00E08445 /* Vision.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vision.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB3150EA2D81ED4E00E08445 /* VisionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionApp.swift; sourceTree = "<group>"; };
 		AB3150EC2D81ED4E00E08445 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -68,7 +71,6 @@
 		AB6B5EAE2D95D35E00E1BE37 /* RecordAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordAudioManager.swift; sourceTree = "<group>"; };
 		AB6B5EB02D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayAudioContinuouslyManager.swift; sourceTree = "<group>"; };
 		AB6B5EB22D95D38600E1BE37 /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
-		ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConfig.swift; sourceTree = "<group>"; };
 		ABF777A82D9B40C700C279DA /* SharedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -125,8 +127,9 @@
 				AB3151182D81EE1F00E08445 /* FrameView.swift */,
 				AB31511A2D81EEF000E08445 /* VisionService.swift */,
 				AB31511C2D81EF2000E08445 /* VisionBackend.swift */,
+				8498E0B02E8B06AC006DF021 /* OpenAIConfig.swift */,
+				8498E0B22E8B06D2006DF021 /* OpenAIConfig.swift */,
 				AB31511E2D81EF4E00E08445 /* OpenAIService.swift */,
-				ABF7776E2D989C4100C279DA /* OpenAIConfig.swift */,
 				ABF777A82D9B40C700C279DA /* SharedState.swift */,
 			);
 			path = Vision;
@@ -303,13 +306,14 @@
 				AB3151192D81EE1F00E08445 /* FrameView.swift in Sources */,
 				AB3150ED2D81ED4E00E08445 /* ContentView.swift in Sources */,
 				AB6B5EB32D95D38600E1BE37 /* AudioVisualizerView.swift in Sources */,
+				8498E0B32E8B06D7006DF021 /* OpenAIConfig.swift in Sources */,
+				8498E0B12E8B06B4006DF021 /* OpenAIConfig.swift in Sources */,
 				AB31511D2D81EF2000E08445 /* VisionBackend.swift in Sources */,
 				AB3151172D81EDF400E08445 /* FrameHandler.swift in Sources */,
 				AB6B5EAD2D95D34D00E1BE37 /* WebSocketManager.swift in Sources */,
 				AB6B5E932D947B3E00E1BE37 /* CompanionView.swift in Sources */,
 				AB6B5EB12D95D37000E1BE37 /* PlayAudioContinuouslyManager.swift in Sources */,
 				AB3150EB2D81ED4E00E08445 /* VisionApp.swift in Sources */,
-				ABF7776F2D989C4100C279DA /* OpenAIConfig.swift in Sources */,
 				AB31511B2D81EEF000E08445 /* VisionService.swift in Sources */,
 				AB6B5EAF2D95D35E00E1BE37 /* RecordAudioManager.swift in Sources */,
 			);
